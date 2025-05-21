@@ -16,9 +16,8 @@ The Aion Protocol works best with:
 
 ### Accessing the Application
 
-You can access the Aion Protocol in two ways:
-1. Visit [https://aion-protocol.org](https://aion-protocol.org) to use the hosted version
-2. Download and run locally following the installation instructions in the README.md file
+You can access the Aion Simulator by:
+1. Download and run locally following the installation instructions in the README.md file
 
 ### Interface Overview
 

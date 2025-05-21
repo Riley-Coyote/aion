@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aion Scientific Platform</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Color variables */
+      --background: #0c0c10;
+      --panel-bg: rgba(18, 18, 18, 0.75);
+      --text-primary: rgba(255, 255, 255, 0.95);
+      --text-secondary: rgba(255, 255, 255, 0.75);
+      --accent: #484848;
+      --panel-border: rgba(72, 72, 72, 0.25);
+      --panel-glow: rgba(150, 150, 150, 0.12);
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      background-color: var(--background);
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-image: 
+        linear-gradient(to right, rgba(58, 123, 213, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(58, 123, 213, 0.03) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      width: 90%;
+      margin: 0 auto;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 20px;
+    }
+    
+    h1 {
+      font-size: 36px;
+      margin-bottom: 10px;
+      position: relative;
+      display: inline-block;
+    }
+    
+    h1::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+    
+    .tagline {
+      font-size: 16px;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    
+    .projects {
+      display: flex;
+      gap: 30px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .project-card {
+      background: var(--panel-bg);
+      border-radius: 12px;
+      border: 1px solid var(--panel-border);
+      overflow: hidden;
+      width: 400px;
+      height: 450px;
+      box-shadow: 0 4px 20px var(--panel-glow), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(15px);
+      transition: transform 0.3s, box-shadow 0.3s;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    
+    .project-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 30px var(--panel-glow), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+    
+    .project-card::before,
+    .project-card::after {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-color: var(--accent);
+      opacity: 0.4;
+      transition: all 0.3s;
+    }
+    
+    .project-card::before {
+      top: 0;
+      left: 0;
+      border-top: 1px solid;
+      border-left: 1px solid;
+      border-top-left-radius: 6px;
+    }
+    
+    .project-card::after {
+      bottom: 0;
+      right: 0;
+      border-bottom: 1px solid;
+      border-right: 1px solid;
+      border-bottom-right-radius: 6px;
+    }
+    
+    .project-card:hover::before,
+    .project-card:hover::after {
+      width: 24px;
+      height: 24px;
+      opacity: 0.6;
+    }
+    
+    .project-image {
+      height: 220px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .project-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s;
+    }
+    
+    .project-card:hover .project-image img {
+      transform: scale(1.05);
+    }
+    
+    .project-info {
+      padding: 20px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .project-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .project-title::before {
+      content: '//';
+      margin-right: 8px;
+      color: var(--accent);
+      opacity: 0.7;
+    }
+    
+    .project-description {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      flex-grow: 1;
+    }
+    
+    .project-features {
+      margin-top: 10px;
+      padding-left: 20px;
+      font-size: 12px;
+    }
+    
+    .project-features li {
+      margin-bottom: 4px;
+    }
+    
+    .project-link {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 10px 20px;
+      background-color: rgba(72, 72, 72, 0.2);
+      color: var(--text-primary);
+      text-decoration: none;
+      border-radius: 6px;
+      transition: background-color 0.3s;
+      text-align: center;
+      font-weight: 500;
+      border: 1px solid var(--panel-border);
+    }
+    
+    .project-link:hover {
+      background-color: rgba(72, 72, 72, 0.4);
+    }
+    
+    footer {
+      margin-top: 60px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-secondary);
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>AION SCIENTIFIC PLATFORM</h1>
+      <p class="tagline">Advanced interactive simulations exploring quantum physics, particle dynamics, and complex systems visualization</p>
+    </header>
+    
+    <div class="projects">
+      <div class="project-card">
+        <div class="project-image">
+          <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjIwIiBmaWxsPSIjMGMwYzEwIiAvPgogICAgPGcgb3BhY2l0eT0iMC42Ij4KICAgICAgPGNpcmNsZSBjeD0iMjAwIiBjeT0iMTEwIiByPSI5MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNDg0ODQ4IiBzdHJva2Utd2lkdGg9IjAuNSIgLz4KICAgICAgPGNpcmNsZSBjeD0iMjAwIiBjeT0iMTEwIiByPSI3MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNDg0ODQ4IiBzdHJva2Utd2lkdGg9IjAuNSIgLz4KICAgICAgPGNpcmNsZSBjeD0iMjAwIiBjeT0iMTEwIiByPSI1MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNDg0ODQ4IiBzdHJva2Utd2lkdGg9IjAuNSIgLz4KICAgIDwvZz4KICAgIDxnIG9wYWNpdHk9IjAuNyI+CiAgICAgIDxjaXJjbGUgY3g9IjE2MCIgY3k9IjgwIiByPSIzIiBmaWxsPSIjYTBhMGEwIiAvPgogICAgICA8Y2lyY2xlIGN4PSIyNDAiIGN5PSIxNDAiIHI9IjQiIGZpbGw9IiNhMGEwYTAiIC8+CiAgICAgIDxjaXJjbGUgY3g9IjE4MCIgY3k9IjE2MCIgcj0iNSIgZmlsbD0iI2EwYTBhMCIgLz4KICAgICAgPGNpcmNsZSBjeD0iMjIwIiBjeT0iNjAiIHI9IjMiIGZpbGw9IiNhMGEwYTAiIC8+CiAgICAgIDxjaXJjbGUgY3g9IjEzMCIgY3k9IjEyMCIgcj0iNCIgZmlsbD0iI2EwYTBhMCIgLz4KICAgICAgPGNpcmNsZSBjeD0iMjcwIiBjeT0iMTAwIiByPSI1IiBmaWxsPSIjYTBhMGEwIiAvPgogICAgPC9nPgogICAgPHRleHQgeD0iMjAwIiB5PSIxMTAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiNlMGUwZTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFJT04gUFJPVE9DT0w8L3RleHQ+Cjwvc3ZnPg==" alt="Aion Protocol">
+        </div>
+        <div class="project-info">
+          <h2 class="project-title">Aion Protocol</h2>
+          <p class="project-description">
+            A comprehensive framework for quantum-inspired particle simulations and complex system modeling. Explore advanced physical phenomena through interactive visualizations.
+          </p>
+          <ul class="project-features">
+            <li>WebGL-powered simulations</li>
+            <li>Scientifically accurate physics models</li>
+            <li>Advanced visualization techniques</li>
+          </ul>
+          <a href="/aion" class="project-link">Launch Aion Protocol</a>
+        </div>
+      </div>
+      
+      <div class="project-card">
+        <div class="project-image">
+          <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMjIwIiBmaWxsPSIjMGMwYzEwIiAvPgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjAwLCAxMTApIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAwIC03MCBBIDcwIDcwIDAgMCAxIDYwLjYyIDM1IEEgNzAgNzAgMCAwIDEgLTYwLjYyIDM1IFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgxMjAsIDEyMCwgMTIwLCAwLjMpIiBzdHJva2Utd2lkdGg9IjAuNSIgLz4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAtNjAuNjIgMzUgQSA3MCA3MCAwIDAgMSAtNjAuNjIgLTM1IEEgNzAgNzAgMCAwIDEgMCAtNzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgxMjAsIDEyMCwgMTIwLCAwLjMpIiBzdHJva2Utd2lkdGg9IjAuNSIgLz4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAwIDcwIEEgNzAgNzAgMCAwIDEgLTYwLjYyIC0zNSBBIDcwIDcwIDAgMCAxIDYwLjYyIC0zNSBaIiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMTIwLCAxMjAsIDEyMCwgMC4zKSIgc3Ryb2tlLXdpZHRoPSIwLjUiIC8+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgNjAuNjIgLTM1IEEgNzAgNzAgMCAwIDEgNjAuNjIgMzUgQSA3MCA3MCAwIDAgMSAwIDcwIiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMTIwLCAxMjAsIDEyMCwgMC4zKSIgc3Ryb2tlLXdpZHRoPSIwLjUiIC8+CiAgICAgIAogICAgICA8IS0tIEF1ZGlvIHdhdmVmb3JtIC0tPgogICAgICA8cGF0aCBkPSJNIC0xNjAgMjAgCiAgICAgICAgICAgICAgICBRIC0xNDAgNDAgLTEyMCAxMCBRIC0xMDAgLTIwIC04MCAtMTAgUSAtNjAgMCAtNDAgMzAgUSAtMjAgNjAgMCAtMTAgUSAyMCAtODAgNDAgLTEwIFEgNjAgNjAgODAgLTEwIFEgMTAwIC04MCAxMjAgMTAgUSAxNDAgMTAwIDE2MCAxMCIgCiAgICAgICAgICAgICAgICBzdHJva2U9InJnYmEoMTgwLCAxODAsIDE4MCwgMC42KSIgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIC8+CiAgICA8L2c+CiAgICAKICAgIDwhLS0gUGFydGljbGVzIC0tPgogICAgPGcgb3BhY2l0eT0iMC44Ij4KICAgICAgPGNpcmNsZSBjeD0iODAiIGN5PSI4MCIgcj0iMiIgZmlsbD0iI2ZmZmZmZiIgLz4KICAgICAgPGNpcmNsZSBjeD0iMTIwIiBjeT0iMTAwIiByPSIyIiBmaWxsPSIjZmZmZmZmIiAvPgogICAgICA8Y2lyY2xlIGN4PSIxNjAiIGN5PSI2MCIgcj0iMiIgZmlsbD0iI2ZmZmZmZiIgLz4KICAgICAgPGNpcmNsZSBjeD0iMjAwIiBjeT0iMTQwIiByPSIyIiBmaWxsPSIjZmZmZmZmIiAvPgogICAgICA8Y2lyY2xlIGN4PSIyNDAiIGN5PSI5MCIgcj0iMiIgZmlsbD0iI2ZmZmZmZiIgLz4KICAgICAgPGNpcmNsZSBjeD0iMjgwIiBjeT0iMTIwIiByPSIyIiBmaWxsPSIjZmZmZmZmIiAvPgogICAgICA8Y2lyY2xlIGN4PSIzMjAiIGN5PSIxMDAiIHI9IjIiIGZpbGw9IiNmZmZmZmYiIC8+CiAgICAgIDxjaXJjbGUgY3g9IjgwIiBjeT0iMTYwIiByPSIyIiBmaWxsPSIjZmZmZmZmIiAvPgogICAgICA8Y2lyY2xlIGN4PSIxMjAiIGN5PSIxODAiIHI9IjIiIGZpbGw9IiNmZmZmZmYiIC8+CiAgICAgIDxjaXJjbGUgY3g9IjE2MCIgY3k9IjE0MCIgcj0iMiIgZmlsbD0iI2ZmZmZmZiIgLz4KICAgICAgPGNpcmNsZSBjeD0iMjAwIiBjeT0iNDAiIHI9IjIiIGZpbGw9IiNmZmZmZmYiIC8+CiAgICAgIDxjaXJjbGUgY3g9IjI0MCIgY3k9IjYwIiByPSIyIiBmaWxsPSIjZmZmZmZmIiAvPgogICAgICA8Y2lyY2xlIGN4PSIyODAiIGN5PSI0MCIgcj0iMiIgZmlsbD0iI2ZmZmZmZiIgLz4KICAgICAgPGNpcmNsZSBjeD0iMzIwIiBjeT0iMTgwIiByPSIyIiBmaWxsPSIjZmZmZmZmIiAvPgogICAgPC9nPgogICAgCiAgICA8dGV4dCB4PSIyMDAiIHk9IjExMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2UwZTBlMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UVVBTVRVTSBDSU1VTEFUT1I8L3RleHQ+Cjwvc3ZnPg==" alt="Quantum Simulator">
+        </div>
+        <div class="project-info">
+          <h2 class="project-title">Quantum Simulator</h2>
+          <p class="project-description">
+            Visualize quantum mechanics principles through an interactive particle system with audio integration. Create mesmerizing patterns that respond to sound and music.
+          </p>
+          <ul class="project-features">
+            <li>Audio-reactive particle physics</li>
+            <li>Microphone and audio file input</li>
+            <li>Quantum harmonic visualization</li>
+            <li>AI assistant for concept explanation</li>
+          </ul>
+          <a href="/quantum" class="project-link">Launch Quantum Simulator</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    <p>Aion Scientific Platform • Experimental Quantum Physics Visualizations • © 2024</p>
+  </footer>
+</body>
+</html>

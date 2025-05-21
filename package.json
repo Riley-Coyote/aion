@@ -1,15 +1,27 @@
 {
   "name": "aion-protocol",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "1.1.0",
+  "description": "Aion Protocol with Quantum Simulator and Audio Visualization",
+  "main": "combined-server.js",
   "directories": {
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "webpack serve --open",
+    "build": "webpack --mode=production",
+    "dev": "webpack serve",
+    "serve": "node combined-server.js",
+    "deploy": "webpack --mode=production && node combined-server.js"
   },
-  "keywords": [],
+  "keywords": [
+    "quantum",
+    "simulation",
+    "webgl",
+    "threejs",
+    "audio-visualization",
+    "ai-chat"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
@@ -17,8 +29,10 @@
     "@babel/preset-env": "^7.26.9",
     "babel-loader": "^10.0.0",
     "copy-webpack-plugin": "^13.0.0",
+    "css-loader": "^7.1.2",
     "html-webpack-plugin": "^5.6.3",
     "raw-loader": "^4.0.2",
+    "style-loader": "^4.0.0",
     "three": "^0.175.0",
     "webpack": "^5.98.0",
     "webpack-cli": "^6.0.1",
@@ -26,7 +40,9 @@
     "webpack-glsl-loader": "^1.0.1"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "dat.gui": "^0.7.9",
+    "express": "^4.21.2",
     "gl-matrix": "^3.4.3",
     "gsap": "^3.12.7",
     "stats.js": "^0.17.0"

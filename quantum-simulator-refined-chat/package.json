@@ -1,0 +1,27 @@
+{
+  "name": "quantum-simulator-with-ai-chat",
+  "version": "1.1.0",
+  "description": "Quantum Simulator with integrated AI Chat and Audio Visualization",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "quantum",
+    "simulation",
+    "webgl",
+    "threejs",
+    "audio-visualization",
+    "ai-chat"
+  ],
+  "author": "",
+  "license": "MIT"
+}

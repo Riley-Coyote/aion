@@ -1,0 +1,2935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quantum Particle Network Simulator</title>
+  <!-- Load Three.js as ES Module from CDN -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js"
+      }
+    }
+  </script>
+  <!-- Load GSAP for animations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+  <!-- Load JetBrains Mono font -->
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Neo-futuristic design system with refined glassmorphism */
+    :root {
+      /* Updated color palette - deeper, more sophisticated blues */
+      --primary: #3a7bd5;
+      --primary-light: #5e9eff;
+      --primary-dark: #1e5799;
+      --secondary: #355c7d;
+      --tertiary: #00d2ff;
+      --accent: #ff4081;
+      
+      /* Dark, rich background */
+      --background: #0a0e17;
+      --background-darker: #070b12;
+      --background-lighter: #111826;
+      
+      /* Panel styles with enhanced glassmorphism */
+      --panel-bg: rgba(10, 14, 23, 0.75);
+      --panel-border: rgba(58, 123, 213, 0.25);
+      --panel-glow: rgba(94, 158, 255, 0.12);
+      --panel-accent: rgba(58, 123, 213, 0.15);
+      
+      /* Control elements */
+      --slider-bg: rgba(58, 123, 213, 0.15);
+      --slider-thumb: var(--primary);
+      --slider-track: rgba(58, 123, 213, 0.3);
+      
+      /* Typography */
+      --text-primary: rgba(255, 255, 255, 0.95);
+      --text-secondary: rgba(255, 255, 255, 0.75);
+      --text-tertiary: rgba(255, 255, 255, 0.5);
+      --text-accent: var(--primary-light);
+      
+      /* Spacing - precise 4px grid system */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-10: 40px;
+      
+      /* Blur effects */
+      --blur-sm: 10px;
+      --blur-md: 15px;
+      --blur-lg: 25px;
+      
+      /* Transitions */
+      --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    /* Global styles */
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: var(--background);
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-primary);
+      cursor: default;
+      /* Add subtle noise texture */
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.025'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 200px;
+    }
+    
+    #particleCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* Grid overlay */
+    .grid-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background-image: 
+        linear-gradient(to right, rgba(58, 123, 213, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(58, 123, 213, 0.03) 1px, transparent 1px);
+      background-size: 20px 20px;
+      opacity: 0.5;
+      z-index: 1;
+    }
+    
+    /* Enhanced glassmorphic panels - SMALLER SIZE */
+    .control-panel {
+      position: absolute;
+      padding: var(--space-4);
+      background: var(--panel-bg);
+      border-radius: 12px;
+      z-index: 10;
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 4px 20px var(--panel-glow), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(var(--blur-md));
+      transition: all var(--transition-normal);
+      /* Add neo-futuristic corner shapes */
+      position: relative;
+      overflow: hidden;
+      /* Smaller size */
+      transform-origin: top right;
+      opacity: 0.85;
+    }
+    
+    /* Corner decorations */
+    .control-panel::before,
+    .control-panel::after {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-color: var(--primary);
+      opacity: 0.4;
+      transition: all var(--transition-normal);
+    }
+    
+    .control-panel::before {
+      top: 0;
+      left: 0;
+      border-top: 1px solid;
+      border-left: 1px solid;
+      border-top-left-radius: 6px;
+    }
+    
+    .control-panel::after {
+      bottom: 0;
+      right: 0;
+      border-bottom: 1px solid;
+      border-right: 1px solid;
+      border-bottom-right-radius: 6px;
+    }
+    
+    .control-panel:hover {
+      box-shadow: 0 8px 30px var(--panel-glow), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+      opacity: 1;
+    }
+    
+    .control-panel:hover::before,
+    .control-panel:hover::after {
+      width: 24px;
+      height: 24px;
+      opacity: 0.6;
+    }
+    
+    /* Panel header styling - SMALLER */
+    .control-panel h3 {
+      margin-top: 0;
+      margin-bottom: var(--space-3);
+      font-size: 13px;
+      color: var(--tertiary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      text-shadow: 0 0 15px rgba(0, 210, 255, 0.5);
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    
+    /* Add neo-futuristic prefix to headers */
+    .control-panel h3::before {
+      content: '//';
+      margin-right: var(--space-2);
+      color: var(--primary-light);
+      opacity: 0.7;
+      font-size: 11px;
+    }
+    
+    /* Panel positioning with increased spacing */
+    .shape-controls {
+      bottom: var(--space-4);
+      left: var(--space-4);
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    
+    .color-controls {
+      bottom: var(--space-4);
+      right: var(--space-4);
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    
+    .settings-panel {
+      top: var(--space-4);
+      right: var(--space-4);
+      width: 280px;
+      max-height: 80vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    
+    /* UI States - Hide panels when minimal mode is active */
+    body.minimal-ui .control-panel:not(.active-panel) {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.9);
+    }
+    
+    body.minimal-ui .control-panel.active-panel {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    /* Toggle button for hiding UI */
+    #toggleMinimalUI {
+      position: fixed;
+      top: var(--space-4);
+      left: var(--space-4);
+      z-index: 1000;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      color: var(--tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 10px var(--panel-glow);
+      transition: all 0.2s ease;
+    }
+    
+    #toggleMinimalUI:hover {
+      transform: scale(1.1);
+      box-shadow: 0 2px 15px var(--panel-glow);
+    }
+    
+    /* Custom scrollbar */
+    .settings-panel::-webkit-scrollbar {
+      width: 4px;
+    }
+    
+    .settings-panel::-webkit-scrollbar-track {
+      background: rgba(10, 14, 23, 0.4);
+      border-radius: 2px;
+    }
+    
+    .settings-panel::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 2px;
+      opacity: 0.7;
+    }
+    
+    .settings-panel::-webkit-scrollbar-thumb:hover {
+      background: var(--primary-light);
+    }
+    
+    /* Button styling with refined futuristic design - SMALLER */
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+    
+    button {
+      padding: var(--space-2) var(--space-3);
+      background: rgba(10, 14, 23, 0.8);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 11px;
+      transition: all var(--transition-fast);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.5px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    /* Button hover effect */
+    button:hover {
+      background: rgba(58, 123, 213, 0.15);
+      border-color: var(--primary-light);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(58, 123, 213, 0.2);
+    }
+    
+    /* Button active state */
+    button.active {
+      background: rgba(58, 123, 213, 0.25);
+      border: 1px solid var(--primary-light);
+      box-shadow: 0 0 12px rgba(58, 123, 213, 0.3);
+      color: var(--tertiary);
+    }
+    
+    /* Add subtle glow effect on active buttons */
+    button.active::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at center, rgba(0, 210, 255, 0.15), transparent 70%);
+      opacity: 0.6;
+      pointer-events: none;
+    }
+    
+    /* Button click effect */
+    button:active {
+      transform: translateY(0);
+    }
+    
+    /* Add digital line effect to buttons */
+    button::after {
+      content: '';
+      position: absolute;
+      bottom: 3px;
+      left: 10%;
+      width: 80%;
+      height: 1px;
+      background: linear-gradient(
+        to right,
+        transparent,
+        var(--primary) 20%,
+        var(--primary) 80%,
+        transparent
+      );
+      opacity: 0.3;
+      transition: all var(--transition-normal);
+    }
+    
+    button:hover::after {
+      opacity: 0.6;
+    }
+    
+    /* Slider styling with more precise controls - SMALLER */
+    .slider-container {
+      margin-bottom: var(--space-4);
+      position: relative;
+    }
+    
+    .slider-container.active-slider {
+      z-index: 100;
+    }
+    
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: var(--space-1);
+      font-size: 11px;
+    }
+    
+    .slider-value {
+      color: var(--tertiary);
+      font-family: 'JetBrains Mono', monospace;
+      opacity: 0.9;
+      background: rgba(0, 210, 255, 0.1);
+      padding: 1px 4px;
+      border-radius: 3px;
+      min-width: 36px;
+      text-align: center;
+    }
+    
+    label {
+      color: var(--text-secondary);
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+    }
+    
+    /* Add terminal-like prefix to labels */
+    label::before {
+      content: '>';
+      margin-right: var(--space-1);
+      color: var(--primary-light);
+      opacity: 0.7;
+      font-size: 10px;
+    }
+    
+    /* Enhanced slider styling */
+    input[type="range"] {
+      width: 100%;
+      height: 3px;
+      background: var(--slider-bg);
+      border-radius: 2px;
+      appearance: none;
+      outline: none;
+      cursor: pointer;
+      position: relative;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--slider-thumb);
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(58, 123, 213, 0.5);
+      transition: all var(--transition-fast);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 12px rgba(94, 158, 255, 0.7);
+    }
+    
+    /* Slider track fill effect */
+    input[type="range"] {
+      background: linear-gradient(to right, var(--primary) 0%, var(--primary) 50%, var(--slider-bg) 50%, var(--slider-bg) 100%);
+    }
+    
+    /* Fullscreen button */
+    .fullscreen-button {
+      position: absolute;
+      top: var(--space-4);
+      left: var(--space-10);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--panel-bg);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 2px 10px var(--panel-glow);
+      backdrop-filter: blur(var(--blur-sm));
+      color: var(--tertiary);
+      font-size: 16px;
+      cursor: pointer;
+      transition: all var(--transition-normal);
+    }
+    
+    .fullscreen-button:hover {
+      background: rgba(58, 123, 213, 0.15);
+      border-color: var(--primary-light);
+      transform: scale(1.1);
+      box-shadow: 0 3px 15px rgba(58, 123, 213, 0.25);
+    }
+    
+    /* Logo styling - SMALLER */
+    .quantum-logo {
+      position: fixed;
+      bottom: var(--space-4);
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      opacity: 0.4;
+      z-index: 10;
+      text-shadow: 0 0 12px rgba(0, 210, 255, 0.6);
+      transition: all var(--transition-normal);
+      font-family: 'JetBrains Mono', monospace;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    
+    .quantum-logo:hover {
+      opacity: 0.7;
+      letter-spacing: 4px;
+    }
+    
+    /* Add terminal cursor to logo */
+    .quantum-logo::after {
+      content: '|';
+      animation: blink 1.2s step-end infinite;
+      color: var(--tertiary);
+    }
+    
+    /* Hide logo in minimal mode */
+    body.minimal-ui .quantum-logo {
+      opacity: 0;
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    
+    /* Tab styling - SMALLER */
+    .tabs {
+      display: flex;
+      margin-bottom: var(--space-3);
+      border-bottom: 1px solid rgba(58, 123, 213, 0.2);
+    }
+    
+    .tab {
+      padding: var(--space-2) var(--space-3);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      border-radius: 0;
+      color: var(--text-tertiary);
+      margin-right: var(--space-2);
+      position: relative;
+      font-size: 10px;
+    }
+    
+    .tab:hover {
+      background: transparent;
+      color: var(--text-secondary);
+      transform: none;
+    }
+    
+    .tab.active {
+      color: var(--tertiary);
+      border-bottom: 2px solid var(--tertiary);
+      background: transparent;
+      box-shadow: none;
+    }
+    
+    /* Add subtle glow to active tab */
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: var(--tertiary);
+      box-shadow: 0 0 8px var(--tertiary);
+      border-radius: 1px;
+    }
+
+    /* Stats display - SMALLER */
+    .stats-display {
+      position: absolute;
+      top: var(--space-4);
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: var(--space-3);
+      align-items: center;
+      z-index: 100;
+      background: var(--panel-bg);
+      padding: var(--space-2) var(--space-3);
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 2px 10px var(--panel-glow);
+      backdrop-filter: blur(var(--blur-sm));
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    
+    /* Hide stats in minimal mode */
+    body.minimal-ui .stats-display {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-10px);
+      pointer-events: none;
+    }
+    
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-1);
+    }
+    
+    .stat-label {
+      font-size: 8px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .stat-value {
+      font-size: 10px;
+      color: var(--tertiary);
+      font-weight: 500;
+    }
+    
+    /* Digital readouts - SMALLER */
+    .digital-readout {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      background: rgba(10, 14, 23, 0.8);
+      border: 1px solid var(--panel-border);
+      border-radius: 3px;
+      padding: var(--space-1) var(--space-2);
+      color: var(--tertiary);
+      display: inline-block;
+      margin-right: var(--space-1);
+      position: relative;
+      min-width: 40px;
+      text-align: center;
+    }
+    
+    /* Loading screen */
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--background);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      transition: opacity var(--transition-slow);
+      /* Add subtle noise texture */
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.025'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 200px;
+    }
+    
+    .loading-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    /* Enhanced loading spinner */
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      position: relative;
+    }
+    
+    .loading-spinner::before,
+    .loading-spinner::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .loading-spinner::before {
+      border: 2px solid rgba(58, 123, 213, 0.1);
+    }
+    
+    .loading-spinner::after {
+      border: 2px solid transparent;
+      border-top-color: var(--tertiary);
+      animation: spin 1s linear infinite;
+      box-shadow: 0 0 12px rgba(0, 210, 255, 0.5);
+    }
+    
+    /* Secondary spinner ring */
+    .loading-spinner::before {
+      border: 2px solid rgba(58, 123, 213, 0.1);
+    }
+    
+    .loading-spinner::after {
+      width: calc(100% - 12px);
+      height: calc(100% - 12px);
+      top: 6px;
+      left: 6px;
+      border: 2px solid transparent;
+      border-top-color: var(--tertiary);
+      animation: spin 0.8s linear infinite;
+      box-shadow: 0 0 12px rgba(0, 210, 255, 0.5);
+    }
+    
+    /* Additional spinner element */
+    .loading-spinner-inner {
+      position: absolute;
+      width: calc(100% - 24px);
+      height: calc(100% - 24px);
+      top: 12px;
+      left: 12px;
+      border: 1px solid transparent;
+      border-right-color: var(--primary-light);
+      border-radius: 50%;
+      animation: spin 1.2s linear infinite reverse;
+    }
+    
+    .loading-text {
+      margin-top: var(--space-6);
+      font-size: 14px;
+      color: var(--tertiary);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      font-family: 'JetBrains Mono', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    
+    /* Add animated underline to loading text */
+    .loading-text::after {
+      content: '';
+      display: block;
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--tertiary), transparent);
+      margin-top: var(--space-2);
+      opacity: 0.5;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 0.2; }
+      50% { opacity: 0.8; }
+    }
+    
+    /* Debug console - SMALLER */
+    #debugConsole {
+      position: fixed;
+      bottom: var(--space-4);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40%;
+      max-height: 150px;
+      background: rgba(10, 14, 23, 0.85);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      color: #00d2ff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: var(--space-3);
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+      backdrop-filter: blur(var(--blur-sm));
+    }
+    
+    /* Hide debug in minimal mode */
+    body.minimal-ui #debugConsole {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .debug-message {
+      margin: 2px 0;
+      padding: 1px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      font-family: 'JetBrains Mono', monospace;
+      position: relative;
+      padding-left: var(--space-4);
+    }
+    
+    /* Add terminal prefix to debug messages */
+    .debug-message::before {
+      content: '>';
+      position: absolute;
+      left: 0;
+      color: var(--tertiary);
+      opacity: 0.7;
+    }
+    
+    .debug-error {
+      color: #ff4d88;
+    }
+    
+    .debug-warning {
+      color: #ffcc66;
+    }
+    
+    .debug-info {
+      color: #00d2ff;
+    }
+    
+    #particleCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* Grid overlay */
+    .grid-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background-image: 
+        linear-gradient(to right, rgba(58, 123, 213, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(58, 123, 213, 0.04) 1px, transparent 1px);
+      background-size: 20px 20px;
+      opacity: 0.5;
+      z-index: 1;
+    }
+    
+    /* Enhanced glassmorphic panels */
+    .control-panel {
+      position: absolute;
+      padding: var(--space-6);
+      background: var(--panel-bg);
+      border-radius: 16px;
+      z-index: 10;
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 4px 30px var(--panel-glow), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(var(--blur-md));
+      transition: all var(--transition-normal);
+      /* Add neo-futuristic corner shapes */
+      position: relative;
+      overflow: hidden;
+    }
+    
+    /* Corner decorations */
+    .control-panel::before,
+    .control-panel::after {
+      content: '';
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-color: var(--primary);
+      opacity: 0.4;
+      transition: all var(--transition-normal);
+    }
+    
+    .control-panel::before {
+      top: 0;
+      left: 0;
+      border-top: 2px solid;
+      border-left: 2px solid;
+      border-top-left-radius: 8px;
+    }
+    
+    .control-panel::after {
+      bottom: 0;
+      right: 0;
+      border-bottom: 2px solid;
+      border-right: 2px solid;
+      border-bottom-right-radius: 8px;
+    }
+    
+    .control-panel:hover {
+      box-shadow: 0 8px 40px var(--panel-glow), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+    
+    .control-panel:hover::before,
+    .control-panel:hover::after {
+      width: 40px;
+      height: 40px;
+      opacity: 0.6;
+    }
+    
+    /* Panel header styling */
+    .control-panel h3 {
+      margin-top: 0;
+      margin-bottom: var(--space-5);
+      font-size: 16px;
+      color: var(--tertiary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 15px rgba(0, 210, 255, 0.5);
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    
+    /* Add neo-futuristic prefix to headers */
+    .control-panel h3::before {
+      content: '//';
+      margin-right: var(--space-3);
+      color: var(--primary-light);
+      opacity: 0.7;
+      font-size: 14px;
+    }
+    
+    /* Panel positioning with increased spacing */
+    .shape-controls {
+      bottom: var(--space-8);
+      left: var(--space-8);
+    }
+    
+    .color-controls {
+      bottom: var(--space-8);
+      right: var(--space-8);
+    }
+    
+    .settings-panel {
+      top: var(--space-8);
+      right: var(--space-8);
+      width: 320px;
+      max-height: 80vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    
+    /* Custom scrollbar */
+    .settings-panel::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .settings-panel::-webkit-scrollbar-track {
+      background: rgba(10, 14, 23, 0.4);
+      border-radius: 3px;
+    }
+    
+    .settings-panel::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 3px;
+      opacity: 0.7;
+    }
+    
+    .settings-panel::-webkit-scrollbar-thumb:hover {
+      background: var(--primary-light);
+    }
+    
+    /* Button styling with refined futuristic design */
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+    }
+    
+    button {
+      padding: var(--space-3) var(--space-5);
+      background: rgba(10, 14, 23, 0.8);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 13px;
+      transition: all var(--transition-fast);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.5px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    /* Button hover effect */
+    button:hover {
+      background: rgba(58, 123, 213, 0.15);
+      border-color: var(--primary-light);
+      color: var(--text-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(58, 123, 213, 0.2);
+    }
+    
+    /* Button active state */
+    button.active {
+      background: rgba(58, 123, 213, 0.25);
+      border: 1px solid var(--primary-light);
+      box-shadow: 0 0 15px rgba(58, 123, 213, 0.3);
+      color: var(--tertiary);
+    }
+    
+    /* Add subtle glow effect on active buttons */
+    button.active::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at center, rgba(0, 210, 255, 0.15), transparent 70%);
+      opacity: 0.6;
+      pointer-events: none;
+    }
+    
+    /* Button click effect */
+    button:active {
+      transform: translateY(0);
+    }
+    
+    /* Add digital line effect to buttons */
+    button::after {
+      content: '';
+      position: absolute;
+      bottom: 4px;
+      left: 10%;
+      width: 80%;
+      height: 1px;
+      background: linear-gradient(
+        to right,
+        transparent,
+        var(--primary) 20%,
+        var(--primary) 80%,
+        transparent
+      );
+      opacity: 0.3;
+      transition: all var(--transition-normal);
+    }
+    
+    button:hover::after {
+      opacity: 0.6;
+    }
+    
+    /* Slider styling with more precise controls */
+    .slider-container {
+      margin-bottom: var(--space-6);
+    }
+    
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: var(--space-2);
+      font-size: 13px;
+    }
+    
+    .slider-value {
+      color: var(--tertiary);
+      font-family: 'JetBrains Mono', monospace;
+      opacity: 0.9;
+      background: rgba(0, 210, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      min-width: 40px;
+      text-align: center;
+    }
+    
+    label {
+      color: var(--text-secondary);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+    }
+    
+    /* Add terminal-like prefix to labels */
+    label::before {
+      content: '>';
+      margin-right: var(--space-2);
+      color: var(--primary-light);
+      opacity: 0.7;
+      font-size: 11px;
+    }
+    
+    /* Enhanced slider styling */
+    input[type="range"] {
+      width: 100%;
+      height: 4px;
+      background: var(--slider-bg);
+      border-radius: 2px;
+      appearance: none;
+      outline: none;
+      cursor: pointer;
+      position: relative;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--slider-thumb);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(58, 123, 213, 0.5);
+      transition: all var(--transition-fast);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 15px rgba(94, 158, 255, 0.7);
+    }
+    
+    /* Slider track fill effect */
+    input[type="range"] {
+      background: linear-gradient(to right, var(--primary) 0%, var(--primary) 50%, var(--slider-bg) 50%, var(--slider-bg) 100%);
+    }
+    
+    /* Fullscreen button */
+    .fullscreen-button {
+      position: absolute;
+      top: var(--space-8);
+      left: var(--space-8);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      background: var(--panel-bg);
+      padding: var(--space-3) var(--space-5);
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 4px 15px var(--panel-glow);
+      backdrop-filter: blur(var(--blur-sm));
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all var(--transition-normal);
+    }
+    
+    .fullscreen-button:hover {
+      background: rgba(58, 123, 213, 0.15);
+      border-color: var(--primary-light);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(58, 123, 213, 0.25);
+    }
+    
+    /* Add icon to fullscreen button */
+    .fullscreen-button::before {
+      content: '⤢';
+      font-size: 16px;
+      color: var(--tertiary);
+    }
+    
+    /* Logo styling */
+    .quantum-logo {
+      position: fixed;
+      bottom: var(--space-8);
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 16px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      opacity: 0.6;
+      z-index: 10;
+      text-shadow: 0 0 15px rgba(0, 210, 255, 0.6);
+      transition: all var(--transition-normal);
+      font-family: 'JetBrains Mono', monospace;
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    
+    .quantum-logo:hover {
+      opacity: 0.9;
+      letter-spacing: 5px;
+    }
+    
+    /* Add terminal cursor to logo */
+    .quantum-logo::after {
+      content: '|';
+      animation: blink 1.2s step-end infinite;
+      color: var(--tertiary);
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    
+    /* Presets panel */
+    .presets-panel {
+      top: var(--space-8);
+      left: var(--space-8);
+      z-index: 90;
+    }
+    
+    .preset-button {
+      margin-right: var(--space-1);
+      margin-bottom: var(--space-1);
+      font-size: 12px;
+    }
+    
+    /* Tab styling */
+    .tabs {
+      display: flex;
+      margin-bottom: var(--space-5);
+      border-bottom: 1px solid rgba(58, 123, 213, 0.2);
+    }
+    
+    .tab {
+      padding: var(--space-3) var(--space-4);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      border-radius: 0;
+      color: var(--text-tertiary);
+      margin-right: var(--space-3);
+      position: relative;
+    }
+    
+    .tab:hover {
+      background: transparent;
+      color: var(--text-secondary);
+      transform: none;
+    }
+    
+    .tab.active {
+      color: var(--tertiary);
+      border-bottom: 2px solid var(--tertiary);
+      background: transparent;
+      box-shadow: none;
+    }
+    
+    /* Add subtle glow to active tab */
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: var(--tertiary);
+      box-shadow: 0 0 10px var(--tertiary);
+      border-radius: 1px;
+    }
+
+    /* Stats display */
+    .stats-display {
+      position: absolute;
+      top: var(--space-8);
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: var(--space-4);
+      align-items: center;
+      z-index: 100;
+      background: var(--panel-bg);
+      padding: var(--space-3) var(--space-5);
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 4px 15px var(--panel-glow);
+      backdrop-filter: blur(var(--blur-sm));
+    }
+    
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-1);
+    }
+    
+    .stat-label {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .stat-value {
+      font-size: 14px;
+      color: var(--tertiary);
+      font-weight: 500;
+    }
+    
+    /* Digital readouts */
+    .digital-readout {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      background: rgba(10, 14, 23, 0.8);
+      border: 1px solid var(--panel-border);
+      border-radius: 4px;
+      padding: var(--space-1) var(--space-3);
+      color: var(--tertiary);
+      display: inline-block;
+      margin-right: var(--space-2);
+      position: relative;
+      min-width: 60px;
+      text-align: center;
+    }
+    
+    /* Loading screen */
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--background);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      transition: opacity var(--transition-slow);
+      /* Add subtle noise texture */
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.025'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 200px;
+    }
+    
+    .loading-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    /* Enhanced loading spinner */
+    .loading-spinner {
+      width: 80px;
+      height: 80px;
+      position: relative;
+    }
+    
+    .loading-spinner::before,
+    .loading-spinner::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .loading-spinner::before {
+      border: 3px solid rgba(58, 123, 213, 0.1);
+    }
+    
+    .loading-spinner::after {
+      border: 3px solid transparent;
+      border-top-color: var(--tertiary);
+      animation: spin 1s linear infinite;
+      box-shadow: 0 0 15px rgba(0, 210, 255, 0.5);
+    }
+    
+    /* Secondary spinner ring */
+    .loading-spinner::before {
+      border: 3px solid rgba(58, 123, 213, 0.1);
+    }
+    
+    .loading-spinner::after {
+      width: calc(100% - 16px);
+      height: calc(100% - 16px);
+      top: 8px;
+      left: 8px;
+      border: 3px solid transparent;
+      border-top-color: var(--tertiary);
+      animation: spin 0.8s linear infinite;
+      box-shadow: 0 0 15px rgba(0, 210, 255, 0.5);
+    }
+    
+    /* Additional spinner element */
+    .loading-spinner-inner {
+      position: absolute;
+      width: calc(100% - 30px);
+      height: calc(100% - 30px);
+      top: 15px;
+      left: 15px;
+      border: 2px solid transparent;
+      border-right-color: var(--primary-light);
+      border-radius: 50%;
+      animation: spin 1.2s linear infinite reverse;
+    }
+    
+    .loading-text {
+      margin-top: var(--space-8);
+      font-size: 16px;
+      color: var(--tertiary);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      font-family: 'JetBrains Mono', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    
+    /* Add animated underline to loading text */
+    .loading-text::after {
+      content: '';
+      display: block;
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--tertiary), transparent);
+      margin-top: var(--space-3);
+      opacity: 0.5;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 0.2; }
+      50% { opacity: 0.8; }
+    }
+    
+    /* Debug console */
+    #debugConsole {
+      position: fixed;
+      bottom: var(--space-8);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 50%;
+      max-height: 200px;
+      background: rgba(10, 14, 23, 0.85);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      color: #00d2ff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: var(--space-4);
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+      backdrop-filter: blur(var(--blur-sm));
+    }
+    
+    .debug-message {
+      margin: 2px 0;
+      padding: 2px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      font-family: 'JetBrains Mono', monospace;
+      position: relative;
+      padding-left: var(--space-5);
+    }
+    
+    /* Add terminal prefix to debug messages */
+    .debug-message::before {
+      content: '>';
+      position: absolute;
+      left: 0;
+      color: var(--tertiary);
+      opacity: 0.7;
+    }
+    
+    .debug-error {
+      color: #ff4d88;
+    }
+    
+    .debug-warning {
+      color: #ffcc66;
+    }
+    
+    .debug-info {
+      color: #00d2ff;
+    }
+  </style>
+</head>
+<body>
+  <!-- Grid overlay for futuristic look -->
+  <div class="grid-overlay"></div>
+
+  <!-- Debug Console -->
+  <div id="debugConsole"></div>
+
+  <!-- Loading Screen -->
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loading-spinner">
+      <div class="loading-spinner-inner"></div>
+    </div>
+    <div class="loading-text">Initializing Quantum Simulator</div>
+  </div>
+
+  <div id="particleCanvas"></div>
+  
+  <button id="fullscreenBtn" class="fullscreen-button">Fullscreen</button>
+  
+  <!-- Stats Display -->
+  <div class="stats-display">
+    <div class="stat-item">
+      <div class="stat-label">FPS</div>
+      <div class="stat-value digital-readout" id="fps-display">60</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Particles</div>
+      <div class="stat-value digital-readout" id="particle-count-display">1500</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Connections</div>
+      <div class="stat-value digital-readout" id="connection-count-display">0</div>
+    </div>
+  </div>
+  
+  <!-- Shape Mode Control -->
+  <div class="control-panel shape-controls">
+    <h3>Shape Mode</h3>
+    <div class="button-group" id="shapeModes">
+      <button data-mode="free" class="active">Free</button>
+      <button data-mode="sphere">Sphere</button>
+      <button data-mode="ring">Ring</button>
+      <button data-mode="donut">Donut</button>
+      <button data-mode="toroid">Toroid</button>
+      <button data-mode="entanglement">Entanglement</button>
+      <button data-mode="wave">Wave</button>
+    </div>
+  </div>
+
+  <!-- Color Mode Control -->
+  <div class="control-panel color-controls">
+    <h3>Color Mode</h3>
+    <div class="button-group" id="colorModes">
+      <button data-mode="default" class="active">Default</button>
+      <button data-mode="spectrum">Spectrum</button>
+      <button data-mode="pulse">Pulse</button>
+      <button data-mode="quantum">Quantum</button>
+    </div>
+  </div>
+
+  <!-- Settings Panel -->
+  <div class="control-panel settings-panel" id="settingsPanel">
+    <h3>Quantum Simulator</h3>
+    
+    <div class="tabs">
+      <button class="tab active" data-tab="particles">Particles</button>
+      <button class="tab" data-tab="interactions">Interactions</button>
+      <button class="tab" data-tab="effects">Effects</button>
+    </div>
+    
+    <div id="particles-tab" class="tab-content">
+      <!-- Will be populated by JS -->
+    </div>
+    
+    <div id="interactions-tab" class="tab-content" style="display:none">
+      <!-- Will be populated by JS -->
+    </div>
+    
+    <div id="effects-tab" class="tab-content" style="display:none">
+      <!-- Will be populated by JS -->
+    </div>
+
+    <div style="margin-top: 20px;">
+      <button id="toggleDebug">Show Debug Console</button>
+    </div>
+  </div>
+  
+  <div class="quantum-logo">Quantum Simulator X</div>
+
+  <!-- Load our custom scripts as ES modules -->
+  <script type="module">
+    // Import Three.js
+    import * as THREE from 'three';
+    
+    // Custom console logger that also shows in debug panel
+    const debugConsole = document.getElementById('debugConsole');
+    const originalConsole = {
+      log: console.log,
+      error: console.error,
+      warn: console.warn,
+      info: console.info
+    };
+
+    function addDebugMessage(message, type = 'info') {
+      const msgElement = document.createElement('div');
+      msgElement.classList.add('debug-message', `debug-${type}`);
+      msgElement.textContent = message;
+      debugConsole.appendChild(msgElement);
+      debugConsole.scrollTop = debugConsole.scrollHeight;
+    }
+
+    // Override console methods
+    console.log = function(...args) {
+      originalConsole.log(...args);
+      addDebugMessage(args.map(x => typeof x === 'object' ? JSON.stringify(x) : x).join(' '), 'info');
+    };
+
+    console.error = function(...args) {
+      originalConsole.error(...args);
+      addDebugMessage(args.map(x => typeof x === 'object' ? JSON.stringify(x) : x).join(' '), 'error');
+    };
+
+    console.warn = function(...args) {
+      originalConsole.warn(...args);
+      addDebugMessage(args.map(x => typeof x === 'object' ? JSON.stringify(x) : x).join(' '), 'warning');
+    };
+
+    // Toggle debug console
+    document.getElementById('toggleDebug').addEventListener('click', () => {
+      if (debugConsole.style.display === 'none') {
+        debugConsole.style.display = 'block';
+        document.getElementById('toggleDebug').textContent = 'Hide Debug Console';
+      } else {
+        debugConsole.style.display = 'none';
+        document.getElementById('toggleDebug').textContent = 'Show Debug Console';
+      }
+    });
+
+    // Performance monitoring
+    let lastTime = 0;
+    let frameCounter = 0;
+    let fpsValue = 0;
+    
+    function updateFPS(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      
+      const elapsed = timestamp - lastTime;
+      frameCounter++;
+      
+      if (elapsed >= 1000) {
+        fpsValue = Math.round((frameCounter * 1000) / elapsed);
+        document.getElementById('fps-display').textContent = fpsValue;
+        frameCounter = 0;
+        lastTime = timestamp;
+      }
+      
+      requestAnimationFrame(updateFPS);
+    }
+    
+    requestAnimationFrame(updateFPS);
+
+    // Log page load info
+    console.log("Page loaded at " + new Date().toLocaleTimeString());
+    
+    // Global error handling
+    window.addEventListener('error', function(e) {
+      console.error('Global error:', e.message, 'at', e.filename, 'line', e.lineno);
+    });
+
+    // Main Quantum Simulation code
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Log that DOM is loaded
+      console.log("DOM fully loaded");
+
+      // Check if THREE is available
+      if (typeof THREE === 'undefined') {
+        console.error("THREE.js module not properly loaded! Check your import map configuration.");
+        alert("THREE.js library failed to load. Please refresh the page or check your network connection.");
+        return;
+      }
+      
+      console.log("THREE.js loaded successfully, version:", THREE.REVISION);
+
+      // Loading screen handlers
+      const loadingScreen = document.getElementById('loadingScreen');
+      
+      function hideLoading() {
+        console.log("Hiding loading screen");
+        loadingScreen.classList.add('hidden');
+        setTimeout(() => {
+          loadingScreen.style.display = 'none';
+        }, 500);
+      }
+      
+      // Default settings
+      const settings = {
+        // Particle properties
+        particleCount: 1500, // Lower for better performance
+        particleSize: 0.35,
+        sphereRadius: 15,
+        
+        // Connections
+        connectionDistance: 5,
+        connectionOpacity: 0.35,
+        maxConnections: 10000,
+        
+        // Movement
+        movementSpeed: 0.01,
+        containmentForce: 0.05,
+        velocityDamping: 0.95,
+        
+        // Interactions
+        interactionStrength: 0.12,
+        interactionRadius: 12,
+        
+        // Effects
+        pulseFrequency: 0.5,
+        pulseStrength: 0.12,
+        waveAmplitude: 0.8,
+        waveFrequency: 0.3,
+        entanglementStrength: 0.4,
+        entanglementDistance: 15,
+        
+        // Quantum effects
+        quantumFluctuation: 0.05,
+        quantumProbability: 0.3,
+        toroidRadius: 12,
+        toroidTubeRadius: 3.5
+      };
+
+      // Mode states
+      let shapeMode = 'free';
+      let colorMode = 'default';
+      let activeTab = 'particles';
+      let isInitializing = true;
+
+      try {
+        // Initialize Three.js
+        console.log("Initializing Three.js scene");
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 30;
+
+        // Create renderer with better performance settings
+        const renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: true,
+          powerPreference: "high-performance"
+        });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x0a0e17); // Match our UI background color
+
+        // Add renderer to DOM
+        const container = document.getElementById('particleCanvas');
+        if (!container) {
+          throw new Error("Container element #particleCanvas not found!");
+        }
+        
+        container.appendChild(renderer.domElement);
+        console.log("Renderer added to DOM");
+
+        // Particles setup
+        let particleSystem;
+        let connectionsLines;
+        let velocities;
+        let targetPositions = null;
+        let originalPositions = null; // Store original positions for entanglement
+        let entanglementPairs = null; // Store pairs for entanglement
+        let frameSkipCounter = 0;
+        let mouseX = 0;
+        let mouseY = 0;
+        let mouseIsMoving = false;
+        let mouseMovementTimeout;
+        let frameCount = 0;
+        let animationId = null;
+        let currentConnectionCount = 0;
+
+        function initParticles() {
+          console.log("Initializing particle system");
+          try {
+            // Cleanup previous system if it exists
+            if (particleSystem) {
+              console.log("Removing previous particle system");
+              scene.remove(particleSystem);
+              scene.remove(connectionsLines);
+              
+              particleSystem.geometry.dispose();
+              particleSystem.material.dispose();
+              connectionsLines.geometry.dispose();
+              connectionsLines.material.dispose();
+            }
+
+            // Log particle count
+            console.log(`Creating ${settings.particleCount} particles`);
+            
+            // Create particles
+            const particleCount = settings.particleCount;
+            const particles = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+            velocities = new Float32Array(particleCount * 3);
+            originalPositions = new Float32Array(particleCount * 3);
+            
+            // Create entanglement pairs if using that mode
+            if (shapeMode === 'entanglement') {
+              console.log("Creating entanglement pairs");
+              entanglementPairs = new Int32Array(particleCount);
+              // Create pairs of entangled particles
+              for (let i = 0; i < particleCount; i += 2) {
+                entanglementPairs[i] = i + 1;
+                entanglementPairs[i + 1] = i;
+              }
+            } else {
+              entanglementPairs = null;
+            }
+
+            // Initialize particle positions, colors, and velocities
+            for (let i = 0; i < particleCount; i++) {
+              const i3 = i * 3;
+              const radius = settings.sphereRadius;
+              
+              // Initial random position
+              const theta = Math.random() * Math.PI * 2;
+              const phi = Math.acos(2 * Math.random() - 1);
+              const r = radius * Math.cbrt(Math.random());
+              
+              positions[i3] = r * Math.sin(phi) * Math.cos(theta);
+              positions[i3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+              positions[i3 + 2] = r * Math.cos(phi);
+              
+              // Store original positions for reference
+              originalPositions[i3] = positions[i3];
+              originalPositions[i3 + 1] = positions[i3 + 1];
+              originalPositions[i3 + 2] = positions[i3 + 2];
+              
+              // Default refined color scheme - more subtle blue tones
+              colors[i3] = 0.15 + (Math.random() * 0.05);     // reduced red
+              colors[i3 + 1] = 0.4 + (Math.random() * 0.15);  // enhanced green
+              colors[i3 + 2] = 0.8 + (Math.random() * 0.2);   // full blue
+              
+              // Initialize velocities
+              velocities[i3] = (Math.random() - 0.5) * 0.01;
+              velocities[i3 + 1] = (Math.random() - 0.5) * 0.01;
+              velocities[i3 + 2] = (Math.random() - 0.5) * 0.01;
+            }
+            
+            // Create BufferAttributes for the geometry
+            particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            
+            // Create particle material with vertex colors & custom point texture
+            const material = new THREE.PointsMaterial({
+              size: settings.particleSize,
+              vertexColors: true,
+              transparent: true,
+              opacity: 0.9,
+              blending: THREE.AdditiveBlending,
+              sizeAttenuation: true,
+              alphaTest: 0.1
+            });
+            
+            // Create the particle system
+            particleSystem = new THREE.Points(particles, material);
+            scene.add(particleSystem);
+            console.log("Particle system created and added to scene");
+            
+            // Create connections material with improved color
+            const connectionsMaterial = new THREE.LineBasicMaterial({
+              color: 0x5e9eff, // Refined brighter blue
+              transparent: true,
+              opacity: settings.connectionOpacity,
+              blending: THREE.AdditiveBlending
+            });
+            
+            // Create connections geometry - start with empty position buffer
+            const connectionsGeometry = new THREE.BufferGeometry();
+            const emptyPositions = new Float32Array(6); // Just a single segment to initialize
+            connectionsGeometry.setAttribute('position', new THREE.BufferAttribute(emptyPositions, 3));
+            
+            connectionsLines = new THREE.LineSegments(connectionsGeometry, connectionsMaterial);
+            scene.add(connectionsLines);
+            console.log("Connection lines created and added to scene");
+            
+            // Update the particle counter display
+            document.getElementById('particle-count-display').textContent = settings.particleCount;
+            
+            isInitializing = false;
+            console.log("Particle initialization complete");
+            
+            // Hide loading screen once first init is complete
+            hideLoading();
+          } catch (error) {
+            console.error("Error in initParticles:", error.message);
+            hideLoading();
+            alert("Error initializing particles: " + error.message);
+          }
+        }
+
+        // Shape functions
+        function createSphere() {
+          console.log("Creating sphere shape");
+          const particleCount = settings.particleCount;
+          const targetPositions = new Float32Array(particleCount * 3);
+          
+          for (let i = 0; i < particleCount; i++) {
+            const i3 = i * 3;
+            const phi = Math.acos(-1 + (2 * i) / particleCount);
+            const theta = Math.sqrt(particleCount * Math.PI) * phi;
+            const radius = settings.sphereRadius;
+            
+            targetPositions[i3] = radius * Math.cos(theta) * Math.sin(phi);
+            targetPositions[i3 + 1] = radius * Math.sin(theta) * Math.sin(phi);
+            targetPositions[i3 + 2] = radius * Math.cos(phi);
+          }
+          
+          return targetPositions;
+        }
+        
+        function createRing() {
+          console.log("Creating ring shape");
+          const particleCount = settings.particleCount;
+          const targetPositions = new Float32Array(particleCount * 3);
+          const radius = settings.sphereRadius;
+          
+          for (let i = 0; i < particleCount; i++) {
+            const i3 = i * 3;
+            const angle = (i / particleCount) * Math.PI * 2;
+            
+            targetPositions[i3] = radius * Math.cos(angle);
+            targetPositions[i3 + 1] = radius * Math.sin(angle);
+            targetPositions[i3 + 2] = (Math.random() - 0.5) * 2; // Slight z variation for more interesting look
+          }
+          
+          return targetPositions;
+        }
+        
+        function createDonut() {
+          console.log("Creating donut shape");
+          const particleCount = settings.particleCount;
+          const targetPositions = new Float32Array(particleCount * 3);
+          const torusRadius = 10;
+          const tubeRadius = 3;
+          
+          for (let i = 0; i < particleCount; i++) {
+            const i3 = i * 3;
+            const u = (i / particleCount) * Math.PI * 2;
+            const v = (Math.floor(i / 20) / Math.floor(particleCount / 20)) * Math.PI * 2;
+            
+            targetPositions[i3] = (torusRadius + tubeRadius * Math.cos(v)) * Math.cos(u);
+            targetPositions[i3 + 1] = (torusRadius + tubeRadius * Math.cos(v)) * Math.sin(u);
+            targetPositions[i3 + 2] = tubeRadius * Math.sin(v);
+          }
+          
+          return targetPositions;
+        }
+        
+        function createToroid() {
+          console.log("Creating toroid shape");
+          const particleCount = settings.particleCount;
+          const targetPositions = new Float32Array(particleCount * 3);
+          const torusRadius = settings.toroidRadius;
+          const tubeRadius = settings.toroidTubeRadius;
+          
+          for (let i = 0; i < particleCount; i++) {
+            const i3 = i * 3;
+            // Use more precise distribution
+            const u = (i / particleCount) * Math.PI * 2;
+            const v = (i % 100 / 100) * Math.PI * 2;
+            
+            targetPositions[i3] = (torusRadius + tubeRadius * Math.cos(v)) * Math.cos(u);
+            targetPositions[i3 + 1] = (torusRadius + tubeRadius * Math.cos(v)) * Math.sin(u);
+            targetPositions[i3 + 2] = tubeRadius * Math.sin(v);
+          }
+          
+          return targetPositions;
+        }
+        
+        function createWave() {
+          console.log("Creating wave shape");
+          const particleCount = settings.particleCount;
+          const targetPositions = new Float32Array(particleCount * 3);
+          const radius = settings.sphereRadius;
+          
+          // Create a wave pattern along a plane
+          for (let i = 0; i < particleCount; i++) {
+            const i3 = i * 3;
+            
+            // Create grid-like distribution
+            const gridSize = Math.ceil(Math.sqrt(particleCount));
+            const x = (i % gridSize) - gridSize / 2;
+            const z = Math.floor(i / gridSize) - gridSize / 2;
+            
+            // Normalize to radius
+            const normalizedX = (x / (gridSize / 2)) * radius;
+            const normalizedZ = (z / (gridSize / 2)) * radius;
+            
+            targetPositions[i3] = normalizedX;
+            targetPositions[i3 + 1] = 0; // Will be animated with wave
+            targetPositions[i3 + 2] = normalizedZ;
+          }
+          
+          return targetPositions;
+        }
+        
+        function createEntanglement() {
+          console.log("Creating entanglement shape");
+          const particleCount = settings.particleCount;
+          const targetPositions = new Float32Array(particleCount * 3);
+          const radius = settings.sphereRadius;
+          
+          // Initialize particles in pairs across the sphere
+          for (let i = 0; i < particleCount; i += 2) {
+            const i3 = i * 3;
+            const j3 = (i + 1) * 3;
+            
+            // Create a random point on the sphere
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            const x = radius * Math.sin(phi) * Math.cos(theta);
+            const y = radius * Math.sin(phi) * Math.sin(theta);
+            const z = radius * Math.cos(phi);
+            
+            // First particle
+            targetPositions[i3] = x;
+            targetPositions[i3 + 1] = y;
+            targetPositions[i3 + 2] = z;
+            
+            // Second particle (180 degrees opposite)
+            targetPositions[j3] = -x;
+            targetPositions[j3 + 1] = -y;
+            targetPositions[j3 + 2] = -z;
+          }
+          
+          return targetPositions;
+        }
+
+        function updateTargetPositions() {
+          console.log(`Updating target positions for shape mode: ${shapeMode}`);
+          switch (shapeMode) {
+            case 'sphere':
+              targetPositions = createSphere();
+              break;
+            case 'ring':
+              targetPositions = createRing();
+              break;
+            case 'donut':
+              targetPositions = createDonut();
+              break;
+            case 'toroid':
+              targetPositions = createToroid();
+              break;
+            case 'wave':
+              targetPositions = createWave();
+              break;
+            case 'entanglement':
+              // Reset entanglement pairs
+              entanglementPairs = new Int32Array(settings.particleCount);
+              for (let i = 0; i < settings.particleCount; i += 2) {
+                entanglementPairs[i] = i + 1;
+                entanglementPairs[i + 1] = i;
+              }
+              targetPositions = createEntanglement();
+              break;
+            default:
+              targetPositions = null;
+              console.log("Free mode activated, no target positions");
+              break;
+          }
+        }
+
+        // Animation loop
+        function animate() {
+          try {
+            animationId = requestAnimationFrame(animate);
+            frameCount++;
+            
+            if (!particleSystem || !particleSystem.geometry || !particleSystem.geometry.attributes || 
+                !particleSystem.geometry.attributes.position) {
+              console.warn("Animation skipped: particle system not properly initialized");
+              return; // Skip if not properly initialized
+            }
+            
+            const positions = particleSystem.geometry.attributes.position.array;
+            const colors = particleSystem.geometry.attributes.color.array;
+            const particleCount = settings.particleCount;
+            
+            // Update target positions if mode changed
+            if (shapeMode !== 'free' && !targetPositions) {
+              updateTargetPositions();
+            } else if (shapeMode === 'free' && targetPositions) {
+              targetPositions = null;
+            }
+            
+            // Simulate audio-reactive pulse effect
+            const time = Date.now() * 0.001;
+            const pulse = (Math.sin(time * settings.pulseFrequency) + 1) / 2;
+            const bassPulse = (Math.sin(time * 0.75) + 1) / 2;
+            const midPulse = (Math.sin(time * 1.5) + 1) / 2;
+            const treblePulse = (Math.sin(time * 2.5) + 1) / 2;
+            
+            // Update particles
+            for (let i = 0; i < particleCount; i++) {
+              const i3 = i * 3;
+              
+              if (targetPositions && shapeMode !== 'free') {
+                // Handle special modes first
+                if (shapeMode === 'wave') {
+                  const waveTime = time * settings.waveFrequency;
+                  const x = targetPositions[i3];
+                  const z = targetPositions[i3 + 2];
+                  const distance = Math.sqrt(x * x + z * z);
+                  
+                  // Create a ripple wave effect
+                  const ripple = Math.sin(distance - waveTime * 3) * settings.waveAmplitude;
+                  
+                  // Move toward target x and z, but use wave function for y
+                  const tx = targetPositions[i3] - positions[i3];
+                  const ty = ripple - positions[i3 + 1];
+                  const tz = targetPositions[i3 + 2] - positions[i3 + 2];
+                  
+                  velocities[i3] += tx * settings.movementSpeed * 5;
+                  velocities[i3 + 1] += ty * settings.movementSpeed * 5;
+                  velocities[i3 + 2] += tz * settings.movementSpeed * 5;
+                } 
+                else if (shapeMode === 'entanglement' && entanglementPairs) {
+                  // Quantum entanglement effect
+                  // First handle normal movement towards target
+                  const tx = targetPositions[i3] - positions[i3];
+                  const ty = targetPositions[i3 + 1] - positions[i3 + 1];
+                  const tz = targetPositions[i3 + 2] - positions[i3 + 2];
+                  
+                  velocities[i3] += tx * settings.movementSpeed * 3;
+                  velocities[i3 + 1] += ty * settings.movementSpeed * 3;
+                  velocities[i3 + 2] += tz * settings.movementSpeed * 3;
+                  
+                  // Then handle entanglement - paired particles affect each other
+                  const pairedIndex = entanglementPairs[i];
+                  
+                  if (pairedIndex !== undefined && pairedIndex < particleCount) {
+                    const j3 = pairedIndex * 3;
+                    // Calculate distance between pairs
+                    const dx = positions[i3] - positions[j3];
+                    const dy = positions[i3 + 1] - positions[j3 + 1];
+                    const dz = positions[i3 + 2] - positions[j3 + 2];
+                    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                    
+                    if (dist > settings.entanglementDistance) {
+                      // If too far, add attraction
+                      const force = settings.entanglementStrength * (dist - settings.entanglementDistance) / dist;
+                      velocities[i3] -= dx * force * 0.5;
+                      velocities[i3 + 1] -= dy * force * 0.5;
+                      velocities[i3 + 2] -= dz * force * 0.5;
+                    }
+                    
+                    // Add mirrored movements - what affects one affects the other
+                    if (frameCount % 3 === 0 && Math.random() < settings.quantumProbability) {
+                      velocities[j3] = -velocities[i3] * 0.8;
+                      velocities[j3 + 1] = -velocities[i3 + 1] * 0.8;
+                      velocities[j3 + 2] = -velocities[i3 + 2] * 0.8;
+                    }
+                  }
+                }
+                else if (shapeMode === 'toroid') {
+                  // Custom toroid animation with flowing movement
+                  const tx = targetPositions[i3] - positions[i3];
+                  const ty = targetPositions[i3 + 1] - positions[i3 + 1];
+                  const tz = targetPositions[i3 + 2] - positions[i3 + 2];
+                  
+                  // Use movement speed for shape transitions with slight variation
+                  const transitionSpeed = settings.movementSpeed * (4 + Math.sin(i * 0.1) * 0.5);
+                  velocities[i3] += tx * transitionSpeed;
+                  velocities[i3 + 1] += ty * transitionSpeed;
+                  velocities[i3 + 2] += tz * transitionSpeed;
+                  
+                  // Add flow around the toroid
+                  const flowSpeed = 0.005;
+                  const idx = Math.floor(i / 3) % 100;
+                  const angle = (idx / 100) * Math.PI * 2;
+                  
+                  // Add tangential velocity to create flow
+                  velocities[i3] += Math.cos(angle + Math.PI/2) * flowSpeed;
+                  velocities[i3 + 1] += Math.sin(angle + Math.PI/2) * flowSpeed;
+                }
+                else {
+                  // Standard shape movement
+                  const tx = targetPositions[i3] - positions[i3];
+                  const ty = targetPositions[i3 + 1] - positions[i3 + 1];
+                  const tz = targetPositions[i3 + 2] - positions[i3 + 2];
+                  
+                  // Use movement speed for shape transitions
+                  const transitionSpeed = settings.movementSpeed * 5;
+                  velocities[i3] += tx * transitionSpeed;
+                  velocities[i3 + 1] += ty * transitionSpeed;
+                  velocities[i3 + 2] += tz * transitionSpeed;
+                }
+                
+                // Add quantum fluctuations - random micro-movements to all particles
+                if (Math.random() < 0.3) {
+                  velocities[i3] += (Math.random() - 0.5) * settings.quantumFluctuation;
+                  velocities[i3 + 1] += (Math.random() - 0.5) * settings.quantumFluctuation;
+                  velocities[i3 + 2] += (Math.random() - 0.5) * settings.quantumFluctuation;
+                }
+              } else {
+                // Natural movement for free mode
+                velocities[i3] += Math.sin(time + i) * settings.movementSpeed;
+                velocities[i3 + 1] += Math.cos(time + i) * settings.movementSpeed;
+                velocities[i3 + 2] += Math.sin(time * 1.1 + i) * settings.movementSpeed;
+                
+                // Pulsing effect
+                const particleGroup = i % 3;
+                let pulseInfluence = 0;
+                
+                switch (particleGroup) {
+                  case 0: pulseInfluence = bassPulse; break;
+                  case 1: pulseInfluence = midPulse; break;
+                  case 2: pulseInfluence = treblePulse; break;
+                }
+                
+                // Add pulsing effect
+                const pulseDirection = new THREE.Vector3(
+                  positions[i3], 
+                  positions[i3 + 1], 
+                  positions[i3 + 2]
+                ).normalize();
+                
+                velocities[i3] += pulseDirection.x * pulseInfluence * settings.pulseStrength;
+                velocities[i3 + 1] += pulseDirection.y * pulseInfluence * settings.pulseStrength;
+                velocities[i3 + 2] += pulseDirection.z * pulseInfluence * settings.pulseStrength;
+              }
+              
+              // Mouse interaction - always apply in all modes if mouse is moving
+              if (mouseIsMoving) {
+                const dx = positions[i3] - mouseX * 20;
+                const dy = positions[i3 + 1] - mouseY * 20;
+                const dz = positions[i3 + 2];
+                const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                
+                if (dist < settings.interactionRadius) {
+                  const force = settings.interactionStrength * (1 - dist / settings.interactionRadius);
+                  velocities[i3] -= dx * force;
+                  velocities[i3 + 1] -= dy * force;
+                }
+              }
+              
+              // Containment for all modes
+              const radius = Math.sqrt(
+                positions[i3] * positions[i3] +
+                positions[i3 + 1] * positions[i3 + 1] +
+                positions[i3 + 2] * positions[i3 + 2]
+              );
+              
+              if (radius > settings.sphereRadius) {
+                const force = settings.containmentForce * (radius - settings.sphereRadius);
+                velocities[i3] -= positions[i3] * force / radius;
+                velocities[i3 + 1] -= positions[i3 + 1] * force / radius;
+                velocities[i3 + 2] -= positions[i3 + 2] * force / radius;
+              }
+              
+              // Apply damping
+              velocities[i3] *= settings.velocityDamping;
+              velocities[i3 + 1] *= settings.velocityDamping;
+              velocities[i3 + 2] *= settings.velocityDamping;
+              
+              // Update positions
+              positions[i3] += velocities[i3];
+              positions[i3 + 1] += velocities[i3 + 1];
+              positions[i3 + 2] += velocities[i3 + 2];
+              
+              // Update colors based on mode
+              if (colorMode === 'spectrum') {
+                // Map position to color spectrum
+                const height = (positions[i3 + 1] / settings.sphereRadius + 1) / 2; // 0-1 range
+                
+                // Enhanced spectral coloring with more vibrant tones
+                if (height < 0.2) {
+                  // Deep blue to cyan
+                  colors[i3] = 0.05;
+                  colors[i3 + 1] = height * 4;
+                  colors[i3 + 2] = 0.9;
+                } else if (height < 0.4) {
+                  // Cyan to green
+                  colors[i3] = 0;
+                  colors[i3 + 1] = 0.8;
+                  colors[i3 + 2] = 1.0 - (height - 0.2) * 5;
+                } else if (height < 0.6) {
+                  // Green to yellow
+                  colors[i3] = (height - 0.4) * 5;
+                  colors[i3 + 1] = 0.9;
+                  colors[i3 + 2] = 0;
+                } else if (height < 0.8) {
+                  // Yellow to magenta
+                  colors[i3] = 0.9;
+                  colors[i3 + 1] = 0.9 - (height - 0.6) * 4.5;
+                  colors[i3 + 2] = (height - 0.6) * 4.5;
+                } else {
+                  // Magenta to deep purple
+                  colors[i3] = 0.9 - (height - 0.8) * 3;
+                  colors[i3 + 1] = 0;
+                  colors[i3 + 2] = 0.9;
+                }
+              } else if (colorMode === 'pulse') {
+                // Enhanced pulse-based colors for more dynamic visuals
+                const particleGroup = i % 3;
+                
+                switch (particleGroup) {
+                  case 0: // Bass (deeper red)
+                    colors[i3] = 0.7 + bassPulse * 0.3;
+                    colors[i3 + 1] = 0.05 + bassPulse * 0.2;
+                    colors[i3 + 2] = 0.1 + bassPulse * 0.1;
+                    break;
+                  case 1: // Mid (teal/cyan)
+                    colors[i3] = 0.05 + midPulse * 0.1;
+                    colors[i3 + 1] = 0.6 + midPulse * 0.4;
+                    colors[i3 + 2] = 0.6 + midPulse * 0.4;
+                    break;
+                  case 2: // Treble (electric blue)
+                    colors[i3] = 0.05 + treblePulse * 0.1;
+                    colors[i3 + 1] = 0.2 + treblePulse * 0.3;
+                    colors[i3 + 2] = 0.7 + treblePulse * 0.3;
+                    break;
+                }
+              } else if (colorMode === 'quantum') {
+                // Enhanced quantum-style colors with energy state visualization
+                const radius = Math.sqrt(
+                  positions[i3] * positions[i3] +
+                  positions[i3 + 1] * positions[i3 + 1] +
+                  positions[i3 + 2] * positions[i3 + 2]
+                );
+                
+                // Normalize radius to 0-1
+                const normalizedRadius = Math.min(radius / settings.sphereRadius, 1);
+                
+                // Create "energy level" color mapping with more vibrant colors
+                if (normalizedRadius < 0.2) {
+                  // Innermost shell - bright cyan/white core
+                  colors[i3] = 0.3 + pulse * 0.3;
+                  colors[i3 + 1] = 0.7 + pulse * 0.3;
+                  colors[i3 + 2] = 1.0;
+                } else if (normalizedRadius < 0.4) {
+                  // Second shell - bright electric blue
+                  colors[i3] = 0.05 + pulse * 0.1;
+                  colors[i3 + 1] = 0.5 + pulse * 0.3;
+                  colors[i3 + 2] = 1.0;
+                } else if (normalizedRadius < 0.6) {
+                  // Third shell - deeper cobalt blue
+                  colors[i3] = 0.1;
+                  colors[i3 + 1] = 0.3 + pulse * 0.2;
+                  colors[i3 + 2] = 0.9 - pulse * 0.1;
+                } else if (normalizedRadius < 0.8) {
+                  // Fourth shell - indigo to violet
+                  colors[i3] = 0.2 + pulse * 0.1;
+                  colors[i3 + 1] = 0.0;
+                  colors[i3 + 2] = 0.7 - pulse * 0.2;
+                } else {
+                  // Outer shell - deep violet edges
+                  colors[i3] = 0.15;
+                  colors[i3 + 1] = 0.0;
+                  colors[i3 + 2] = 0.4 - pulse * 0.1;
+                }
+                
+                // Add slight variance per particle for more natural look
+                const variance = (i % 10) / 10 * 0.15;
+                colors[i3] = Math.min(1, colors[i3] + variance);
+                colors[i3 + 1] = Math.min(1, colors[i3 + 1] + variance * 0.5);
+              } else {
+                // Enhanced default color scheme with blues and subtle variations
+                // Use sin wave of positions for more dynamic coloring
+                const positionFactor = Math.sin(positions[i3] * 0.1 + positions[i3 + 1] * 0.1 + time * 0.2) * 0.5 + 0.5;
+                
+                colors[i3] = 0.15 + positionFactor * 0.1;               // Subtle blue with hints of other colors
+                colors[i3 + 1] = 0.3 + positionFactor * 0.2;
+                colors[i3 + 2] = 0.7 + positionFactor * 0.3;
+                
+                // Add pulse influence for subtle breathing effect
+                colors[i3] *= 0.8 + pulse * 0.2;
+                colors[i3 + 1] *= 0.8 + pulse * 0.2;
+                colors[i3 + 2] *= 0.8 + pulse * 0.2;
+              }
+              
+              // Special color handling for shape modes
+              if (shapeMode === 'entanglement' && entanglementPairs) {
+                const pairedIndex = entanglementPairs[i];
+                if (pairedIndex !== undefined && pairedIndex < particleCount) {
+                  // Make entangled pairs share colors with subtle variations
+                  if (i < pairedIndex) {
+                    const j3 = pairedIndex * 3;
+                    colors[j3] = colors[i3];
+                    colors[j3 + 1] = colors[i3 + 1];
+                    colors[j3 + 2] = colors[i3 + 2];
+                  }
+                }
+              }
+            }
+            
+            // Update connection lines - optimized for performance
+            frameSkipCounter++;
+            if (frameSkipCounter >= 3) {
+              frameSkipCounter = 0;
+              
+              try {
+                // Update connections with fewer lines for better performance
+                const linePositions = [];
+                const maxConnections = settings.maxConnections;
+                let connectionCount = 0;
+                
+                // Different connection strategies for different modes
+                if (shapeMode === 'entanglement' && entanglementPairs) {
+                  // Draw lines only between entangled pairs
+                  for (let i = 0; i < particleCount; i += 2) {
+                    if (i + 1 >= particleCount) break; // Safety check
+                    
+                    const i3 = i * 3;
+                    const j3 = (i + 1) * 3;
+                    
+                    linePositions.push(
+                      positions[i3], positions[i3 + 1], positions[i3 + 2],
+                      positions[j3], positions[j3 + 1], positions[j3 + 2]
+                    );
+                    connectionCount++;
+                  }
+                } else {
+                  // Standard proximity-based connections
+                  // Sample fewer particles based on screen fill for performance
+                  const sampleRate = Math.max(2, Math.floor(particleCount / 500));
+                  
+                  for (let i = 0; i < particleCount; i += sampleRate) {
+                    const i3 = i * 3;
+                    const xi = positions[i3];
+                    const yi = positions[i3 + 1];
+                    const zi = positions[i3 + 2];
+                    
+                    for (let j = i + sampleRate; j < particleCount; j += sampleRate) {
+                      if (connectionCount >= maxConnections) break;
+                      
+                      const j3 = j * 3;
+                      const xj = positions[j3];
+                      const yj = positions[j3 + 1];
+                      const zj = positions[j3 + 2];
+                      
+                      const dx = xi - xj;
+                      const dy = yi - yj;
+                      const dz = zi - zj;
+                      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                      
+                      if (dist < settings.connectionDistance) {
+                        linePositions.push(xi, yi, zi, xj, yj, zj);
+                        connectionCount++;
+                      }
+                    }
+                  }
+                }
+                
+                // Update connection lines if we have any
+                if (linePositions.length > 0) {
+                  const connectionsArray = new Float32Array(linePositions);
+                  connectionsLines.geometry.setAttribute('position', new THREE.BufferAttribute(connectionsArray, 3));
+                  
+                  // Update connection counter display
+                  currentConnectionCount = connectionCount;
+                  document.getElementById('connection-count-display').textContent = connectionCount;
+                }
+                
+                // Update connection opacity based on mode
+                if (shapeMode === 'entanglement') {
+                  connectionsLines.material.opacity = settings.connectionOpacity;
+                } else {
+                  connectionsLines.material.opacity = settings.connectionOpacity * 0.7;
+                }
+                
+                // Add subtle glow effect to lines based on color mode
+                if (colorMode === 'pulse') {
+                  connectionsLines.material.color.setRGB(
+                    0.3 + pulse * 0.2,
+                    0.4 + pulse * 0.2,
+                    0.8 + pulse * 0.2
+                  );
+                } else if (colorMode === 'quantum') {
+                  connectionsLines.material.color.setRGB(
+                    0.1 + pulse * 0.1,
+                    0.5 + pulse * 0.2,
+                    0.9
+                  );
+                }
+              } catch (e) {
+                console.error("Error updating connections:", e);
+              }
+            }
+            
+            // Rotate the scene slightly for a more dynamic view
+            particleSystem.rotation.y += 0.001;
+            connectionsLines.rotation.y += 0.001;
+            
+            // Update geometry attributes
+            particleSystem.geometry.attributes.position.needsUpdate = true;
+            particleSystem.geometry.attributes.color.needsUpdate = true;
+            
+            // Render the scene
+            renderer.render(scene, camera);
+          } catch (error) {
+            console.error("Animation error:", error);
+          }
+        }
+
+        // Event listeners
+        function handleMouseMove(event) {
+          const rect = renderer.domElement.getBoundingClientRect();
+          mouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+          mouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+          
+          // Set flag for mouse movement
+          mouseIsMoving = true;
+          
+          // Clear previous timeout and set new one
+          clearTimeout(mouseMovementTimeout);
+          mouseMovementTimeout = setTimeout(() => {
+            mouseIsMoving = false;
+          }, 100); // Assume mouse stopped after 100ms of no movement
+        }
+
+        window.addEventListener('mousemove', handleMouseMove);
+        console.log("Mouse listener added");
+
+        let resizeTimeout;
+        function handleResize() {
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(() => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            console.log("Window resized, renderer updated");
+          }, 250);
+        }
+
+        window.addEventListener('resize', handleResize);
+        console.log("Resize listener added");
+
+        // Create UI sliders with tab organization
+        function createSliders() {
+          console.log("Creating UI sliders");
+          const sliderConfigs = {
+            particles: [
+              { id: 'particleCount', label: 'Particle Count', min: 500, max: 8000, step: 100, reinit: true },
+              { id: 'particleSize', label: 'Particle Size', min: 0.1, max: 0.8, step: 0.01 },
+              { id: 'sphereRadius', label: 'Sphere Radius', min: 5, max: 30, step: 1 }
+            ],
+            interactions: [
+              { id: 'connectionDistance', label: 'Connection Distance', min: 1, max: 10, step: 0.5 },
+              { id: 'connectionOpacity', label: 'Connection Opacity', min: 0.1, max: 1, step: 0.05 },
+              { id: 'maxConnections', label: 'Max Connections', min: 5000, max: 50000, step: 1000 },
+              { id: 'interactionStrength', label: 'Interaction Strength', min: 0.01, max: 0.5, step: 0.01 },
+              { id: 'interactionRadius', label: 'Interaction Radius', min: 5, max: 20, step: 1 }
+            ],
+            effects: [
+              { id: 'movementSpeed', label: 'Movement Speed', min: 0.001, max: 0.05, step: 0.001 },
+              { id: 'containmentForce', label: 'Containment Force', min: 0.01, max: 0.2, step: 0.01 },
+              { id: 'velocityDamping', label: 'Velocity Damping', min: 0.8, max: 0.99, step: 0.01 },
+              { id: 'pulseFrequency', label: 'Pulse Frequency', min: 0.1, max: 3.0, step: 0.1 },
+              { id: 'pulseStrength', label: 'Pulse Strength', min: 0.01, max: 0.5, step: 0.01 },
+              { id: 'quantumFluctuation', label: 'Quantum Fluctuation', min: 0.01, max: 0.2, step: 0.01 },
+              { id: 'waveAmplitude', label: 'Wave Amplitude', min: 0.1, max: 3.0, step: 0.1 },
+              { id: 'waveFrequency', label: 'Wave Frequency', min: 0.1, max: 2.0, step: 0.1 },
+              { id: 'entanglementStrength', label: 'Entanglement Strength', min: 0.1, max: 1.0, step: 0.05 },
+              { id: 'toroidRadius', label: 'Toroid Radius', min: 5, max: 20, step: 0.5 },
+              { id: 'toroidTubeRadius', label: 'Toroid Tube Radius', min: 1, max: 6, step: 0.5 }
+            ]
+          };
+          
+          // Create sliders for each tab
+          for (const [tabName, configs] of Object.entries(sliderConfigs)) {
+            const tabContent = document.getElementById(`${tabName}-tab`);
+            if (!tabContent) {
+              console.error(`Tab content element #${tabName}-tab not found`);
+              continue;
+            }
+            
+            configs.forEach(config => {
+              const container = document.createElement('div');
+              container.className = 'slider-container';
+              
+              const header = document.createElement('div');
+              header.className = 'slider-header';
+              
+              const label = document.createElement('label');
+              label.textContent = config.label;
+              
+              const value = document.createElement('span');
+              value.className = 'slider-value';
+              value.id = `${config.id}-value`;
+              value.textContent = settings[config.id].toFixed(2);
+              
+              const slider = document.createElement('input');
+              slider.type = 'range';
+              slider.min = config.min;
+              slider.max = config.max;
+              slider.step = config.step;
+              slider.value = settings[config.id];
+              slider.id = config.id;
+              slider.dataset.setting = config.id; // For preset updates
+              
+              slider.addEventListener('input', (e) => {
+                const newValue = parseFloat(e.target.value);
+                settings[config.id] = newValue;
+                value.textContent = newValue.toFixed(2);
+                
+                // Reinitialize particles if certain settings change
+                if (config.reinit && !isInitializing) {
+                  console.log(`Reinitializing for setting change: ${config.id} = ${newValue}`);
+                  initParticles();
+                }
+                
+                // Update connection material opacity
+                if (config.id === 'connectionOpacity' && connectionsLines) {
+                  connectionsLines.material.opacity = newValue * 0.7;
+                }
+                
+                // Update particle size
+                if (config.id === 'particleSize' && particleSystem) {
+                  particleSystem.material.size = newValue;
+                }
+                
+                // Handle shape-specific settings
+                if ((config.id === 'toroidRadius' || config.id === 'toroidTubeRadius') && shapeMode === 'toroid') {
+                  updateTargetPositions();
+                }
+              });
+              
+              header.appendChild(label);
+              header.appendChild(value);
+              container.appendChild(header);
+              container.appendChild(slider);
+              tabContent.appendChild(container);
+            });
+          }
+          console.log("Sliders created successfully");
+        }
+
+        // Setup tab switching in settings panel
+        document.querySelectorAll('.tab').forEach(tab => {
+          tab.addEventListener('click', () => {
+            const tabName = tab.getAttribute('data-tab');
+            console.log(`Switching to tab: ${tabName}`);
+            
+            // Update active tab
+            document.querySelectorAll('.tab').forEach(t => {
+              t.classList.remove('active');
+            });
+            tab.classList.add('active');
+            
+            // Show selected tab content, hide others
+            document.querySelectorAll('.tab-content').forEach(content => {
+              content.style.display = 'none';
+            });
+            document.getElementById(`${tabName}-tab`).style.display = 'block';
+            
+            activeTab = tabName;
+          });
+        });
+        console.log("Tab listeners set up");
+
+        // Setup shape mode buttons with animation effect
+        document.querySelectorAll('#shapeModes button').forEach(button => {
+          button.addEventListener('click', () => {
+            const mode = button.getAttribute('data-mode');
+            console.log(`Changing shape mode to: ${mode}`);
+            
+            // Only take action if the mode is changing
+            if (shapeMode !== mode) {
+              shapeMode = mode;
+              
+              // Clear existing target positions to trigger an update
+              targetPositions = null;
+              
+              // Add button animation effect
+              const buttons = document.querySelectorAll('#shapeModes button');
+              buttons.forEach(btn => btn.classList.remove('active'));
+              button.classList.add('active');
+              
+              // Scale button effect
+              gsap.fromTo(button, 
+                { scale: 1 }, 
+                { scale: 1.1, duration: 0.2, yoyo: true, repeat: 1 }
+              );
+              
+              // Flash particle system
+              gsap.fromTo(
+                particleSystem.material, 
+                { opacity: 0.9 }, 
+                { opacity: 1, duration: 0.3, yoyo: true, repeat: 1 }
+              );
+              
+              // Reinitialize for entanglement to set up pairs
+              if (mode === 'entanglement') {
+                console.log("Reinitializing for entanglement mode");
+                initParticles();
+              }
+            }
+          });
+        });
+        console.log("Shape mode buttons set up");
+
+        // Setup color mode buttons with animation effect
+        document.querySelectorAll('#colorModes button').forEach(button => {
+          button.addEventListener('click', () => {
+            const mode = button.getAttribute('data-mode');
+            console.log(`Changing color mode to: ${mode}`);
+            
+            if (colorMode !== mode) {
+              colorMode = mode;
+              
+              // Update active button
+              const buttons = document.querySelectorAll('#colorModes button');
+              buttons.forEach(btn => btn.classList.remove('active'));
+              button.classList.add('active');
+              
+              // Add button animation
+              gsap.fromTo(button, 
+                { scale: 1 }, 
+                { scale: 1.1, duration: 0.2, yoyo: true, repeat: 1 }
+              );
+              
+              // Apply color transition effect
+              let hueRotate = 0;
+              switch(mode) {
+                case 'spectrum': hueRotate = 90; break;
+                case 'pulse': hueRotate = 180; break;
+                case 'quantum': hueRotate = 270; break;
+              }
+              
+              // Apply hue rotation effect to particles
+              if (particleSystem) {
+                gsap.fromTo(
+                  particleSystem.material,
+                  { opacity: 0.8 },
+                  { opacity: 1, duration: 0.5, ease: "power2.out" }
+                );
+              }
+            }
+          });
+        });
+        console.log("Color mode buttons set up");
+        
+        // Fullscreen toggle
+        document.getElementById('fullscreenBtn').addEventListener('click', () => {
+          console.log("Toggling fullscreen");
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+              console.error(`Error attempting to enable fullscreen: ${err.message}`);
+            });
+          } else {
+            if (document.exitFullscreen) {
+              document.exitFullscreen();
+            }
+          }
+        });
+
+        // Initialize and start animation
+        try {
+          console.log("Starting initialization");
+          initParticles();
+          createSliders();
+          animate();
+          console.log("Initialization complete, animation started");
+        } catch (e) {
+          console.error("Initialization error:", e.message, e.stack);
+          hideLoading();
+          alert("There was an error initializing the simulation. Please try refreshing the page.");
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+          console.log("Page unloading, cleaning up resources");
+          if (animationId) {
+            cancelAnimationFrame(animationId);
+          }
+          
+          if (particleSystem) {
+            scene.remove(particleSystem);
+            scene.remove(connectionsLines);
+            
+            particleSystem.geometry.dispose();
+            particleSystem.material.dispose();
+            connectionsLines.geometry.dispose();
+            connectionsLines.material.dispose();
+            renderer.dispose();
+          }
+          
+          window.removeEventListener('mousemove', handleMouseMove);
+          window.removeEventListener('resize', handleResize);
+        });
+        
+        console.log("Setup complete");
+      } catch (error) {
+        console.error("Critical initialization error:", error.message, error.stack);
+        hideLoading();
+        alert("Failed to initialize the quantum simulator: " + error.message);
+      }
+    });
+  </script>
+  
+  <!-- Load animations.js as module -->
+  <script type="module">
+    import * as THREE from 'three';
+    
+    // All UI animation functions
+    document.addEventListener('DOMContentLoaded', () => {
+      setupUIAnimations();
+      setupLoadingAnimations();
+      initAnimations();
+    });
+    
+    // Enhanced UI animations
+    function setupUIAnimations() {
+      // Panel hover effects
+      gsap.utils.toArray('.control-panel').forEach(panel => {
+        panel.addEventListener('mouseenter', () => {
+          gsap.to(panel, {
+            boxShadow: '0 8px 40px var(--panel-glow), inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+            scale: 1.02,
+            duration: 0.3,
+            ease: 'power2.out'
+          });
+          
+          // Animate corner brackets
+          const brackets = panel.querySelectorAll('::before, ::after');
+          gsap.to(brackets, {
+            width: '40px',
+            height: '40px',
+            opacity: 0.6,
+            duration: 0.3,
+            ease: 'power2.out'
+          });
+        });
+        
+        panel.addEventListener('mouseleave', () => {
+          gsap.to(panel, {
+            boxShadow: '0 4px 30px var(--panel-glow), inset 0 0 0 1px rgba(255, 255, 255, 0.05)',
+            scale: 1,
+            duration: 0.3,
+            ease: 'power2.out'
+          });
+          
+          // Animate corner brackets back
+          const brackets = panel.querySelectorAll('::before, ::after');
+          gsap.to(brackets, {
+            width: '30px',
+            height: '30px',
+            opacity: 0.4,
+            duration: 0.3,
+            ease: 'power2.out'
+          });
+        });
+      });
+      
+      // Button hover animations
+      gsap.utils.toArray('button').forEach(button => {
+        button.addEventListener('mouseenter', () => {
+          gsap.to(button, {
+            backgroundColor: 'rgba(58, 123, 213, 0.15)',
+            borderColor: 'var(--primary-light)',
+            color: 'var(--text-primary)',
+            y: -2,
+            boxShadow: '0 4px 12px rgba(58, 123, 213, 0.2)',
+            duration: 0.15,
+            ease: 'power1.out'
+          });
+          
+          // Enhance button glow effect
+          gsap.to(button.querySelector('::after'), {
+            opacity: 0.6,
+            duration: 0.15,
+            ease: 'power1.out'
+          });
+        });
+        
+        button.addEventListener('mouseleave', () => {
+          if (!button.classList.contains('active')) {
+            gsap.to(button, {
+              backgroundColor: 'rgba(10, 14, 23, 0.8)',
+              borderColor: 'var(--panel-border)',
+              color: 'var(--text-secondary)',
+              y: 0,
+              boxShadow: 'none',
+              duration: 0.15,
+              ease: 'power1.out'
+            });
+          } else {
+            gsap.to(button, {
+              backgroundColor: 'rgba(58, 123, 213, 0.25)',
+              borderColor: 'var(--primary-light)',
+              color: 'var(--tertiary)',
+              y: 0,
+              boxShadow: '0 0 15px rgba(58, 123, 213, 0.3)',
+              duration: 0.15,
+              ease: 'power1.out'
+            });
+          }
+          
+          // Reduce button glow
+          gsap.to(button.querySelector('::after'), {
+            opacity: 0.3,
+            duration: 0.15,
+            ease: 'power1.out'
+          });
+        });
+        
+        button.addEventListener('mousedown', () => {
+          gsap.to(button, {
+            scale: 0.95,
+            duration: 0.1,
+            ease: 'power1.in'
+          });
+        });
+        
+        button.addEventListener('mouseup', () => {
+          gsap.to(button, {
+            scale: 1,
+            duration: 0.1,
+            ease: 'power1.out'
+          });
+        });
+      });
+      
+      // Slider animations
+      gsap.utils.toArray('input[type="range"]').forEach(slider => {
+        slider.addEventListener('mousedown', () => {
+          const valueDisplay = document.getElementById(`${slider.id}-value`);
+          if (valueDisplay) {
+            gsap.to(valueDisplay, {
+              scale: 1.1,
+              backgroundColor: 'rgba(0, 210, 255, 0.2)',
+              color: 'var(--tertiary)',
+              duration: 0.2,
+              ease: 'power1.out'
+            });
+          }
+        });
+        
+        slider.addEventListener('mouseup', () => {
+          const valueDisplay = document.getElementById(`${slider.id}-value`);
+          if (valueDisplay) {
+            gsap.to(valueDisplay, {
+              scale: 1,
+              backgroundColor: 'rgba(0, 210, 255, 0.1)',
+              color: 'var(--tertiary)',
+              duration: 0.2,
+              ease: 'power1.out'
+            });
+          }
+        });
+      });
+      
+      // Tab switching animations
+      gsap.utils.toArray('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          const tabId = tab.getAttribute('data-tab');
+          const tabContent = document.getElementById(`${tabId}-tab`);
+          
+          // Hide all tab content with animation
+          gsap.utils.toArray('.tab-content').forEach(content => {
+            if (content.id !== `${tabId}-tab`) {
+              gsap.to(content, {
+                opacity: 0,
+                y: -10,
+                duration: 0.2,
+                ease: 'power1.in',
+                onComplete: () => {
+                  content.style.display = 'none';
+                }
+              });
+            }
+          });
+          
+          // Show selected tab content with animation
+          tabContent.style.display = 'block';
+          gsap.fromTo(
+            tabContent,
+            { opacity: 0, y: 10 },
+            { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }
+          );
+        });
+      });
+      
+      // Fullscreen button animation
+      const fullscreenBtn = document.getElementById('fullscreenBtn');
+      if (fullscreenBtn) {
+        fullscreenBtn.addEventListener('mouseenter', () => {
+          gsap.to(fullscreenBtn, {
+            backgroundColor: 'rgba(58, 123, 213, 0.15)',
+            borderColor: 'var(--primary-light)',
+            scale: 1.05,
+            y: -2,
+            boxShadow: '0 6px 20px rgba(58, 123, 213, 0.25)',
+            duration: 0.2,
+            ease: 'power1.out'
+          });
+        });
+        
+        fullscreenBtn.addEventListener('mouseleave', () => {
+          gsap.to(full

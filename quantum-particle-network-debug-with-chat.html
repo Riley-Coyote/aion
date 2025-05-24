@@ -1,0 +1,4610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quantum Particle Network Simulator with AI Chat</title>
+  
+  <!-- Error handling for debugging -->
+  <script>
+    // Global error handler to catch and display initialization errors
+    window.addEventListener('error', function(e) {
+      console.error('Global error caught:', e.message, 'at', e.filename, 'line', e.lineno);
+      
+      // Display error in UI after short delay (to ensure DOM is loaded)
+      setTimeout(function() {
+        const loadingScreen = document.getElementById('loadingScreen');
+        if (loadingScreen) {
+          loadingScreen.innerHTML = '<div style="color: #ff5555; padding: 20px; max-width: 80%; text-align: center;">' +
+            '<h3>Error during initialization</h3>' +
+            '<p>' + e.message + '</p>' +
+            '<p>Check console for details.</p>' +
+            '<button onclick="location.reload()">Reload</button>' +
+            '</div>';
+        }
+      }, 500);
+      
+      return false; // Let the error propagate
+    });
+  </script>
+  
+  <!-- Load Three.js from a reliable CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+  
+  <style>
+    :root {
+      /* Glassmorphic color scheme */
+      --primary: #ffffff;
+      --secondary: rgba(255, 255, 255, 0.8);
+      --tertiary: rgba(255, 255, 255, 0.6);
+      --accent: #0066ff;
+      --accent-light: rgba(0, 102, 255, 0.6);
+      --accent-lighter: rgba(0, 102, 255, 0.2);
+      --background: #121218;
+      --glass: rgba(255, 255, 255, 0.05);
+      --glass-darker: rgba(255, 255, 255, 0.03);
+      --glass-lighter: rgba(255, 255, 255, 0.07);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-border-active: rgba(255, 255, 255, 0.15);
+      --glass-highlight: rgba(255, 255, 255, 0.1);
+      --glass-shadow: rgba(0, 0, 0, 0.3);
+      --panel-inner: rgba(0, 0, 0, 0.2);
+      --slider-track: rgba(0, 0, 0, 0.3);
+      --slider-track-highlight: rgba(0, 102, 255, 0.4);
+      --slider-thumb: rgba(255, 255, 255, 0.9);
+      --slider-thumb-shadow: 0 0 10px rgba(0, 102, 255, 0.6);
+      --led-off: rgba(255, 255, 255, 0.2);
+      --led-red: rgba(255, 51, 0, 0.8);
+      --led-green: rgba(0, 204, 0, 0.8);
+      --led-blue: rgba(0, 102, 255, 0.8);
+      --switch-on: rgba(0, 204, 102, 0.9);
+      --switch-off: rgba(255, 255, 255, 0.4);
+      --text-primary: rgba(255, 255, 255, 0.95);
+      --text-secondary: rgba(255, 255, 255, 0.7);
+      --text-disabled: rgba(255, 255, 255, 0.3);
+      --text-glow: 0 0 5px rgba(255, 255, 255, 0.5);
+      --shadow: rgba(0, 0, 0, 0.2);
+      --inset-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+      --blur-radius: 15px;
+      --transition-speed: 0.3s;
+      
+      /* Focus mode variables */
+      --opacity-unfocused: 0.3;
+      --opacity-focused: 1;
+      --scale-unfocused: 0.95;
+      --scale-focused: 1;
+    }
+    
+    /* Basic styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: var(--background);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--text-primary);
+      cursor: default;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background-image: 
+        radial-gradient(circle at 30% 20%, rgba(0, 30, 60, 0.3), transparent 60%),
+        radial-gradient(circle at 70% 80%, rgba(60, 10, 60, 0.2), transparent 40%);
+      min-height: 100vh;
+    }
+    
+    #particleCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* Loading screen */
+    #loadingScreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--background);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    
+    /* Focus mode styles */
+    body.focus-mode .control-panel:not(:hover):not(.focused) {
+      opacity: var(--opacity-unfocused, 0.3);
+      transform: scale(var(--scale-unfocused, 0.95));
+      filter: blur(1px);
+    }
+    
+    body.focus-mode .control-panel:hover,
+    body.focus-mode .control-panel.focused {
+      opacity: var(--opacity-focused, 1);
+      transform: scale(var(--scale-focused, 1));
+      filter: blur(0px);
+      z-index: 20;
+    }
+    
+    /* Control panels */
+    .control-panel {
+      position: absolute;
+      padding: 24px;
+      background: var(--glass);
+      border-radius: 20px;
+      z-index: 10;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 10px 30px var(--shadow);
+      transition: all var(--transition-speed) ease;
+      backdrop-filter: blur(var(--blur-radius));
+      -webkit-backdrop-filter: blur(var(--blur-radius));
+      transform-origin: center;
+      transform: translateZ(0);
+      will-change: transform, opacity;
+    }
+    
+    .control-panel:hover {
+      border-color: var(--glass-border-active);
+      box-shadow: 0 15px 40px var(--shadow), 0 0 20px rgba(0, 102, 255, 0.1);
+    }
+    
+    /* Panel title bar */
+    .control-panel h3 {
+      margin: -24px -24px 20px -24px;
+      padding: 16px;
+      border-bottom: 1px solid var(--glass-border);
+      background: var(--glass-darker);
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 1px 5px var(--glass-shadow);
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      position: relative;
+      font-weight: 300;
+    }
+    
+    /* Little LED indicator in panel header */
+    .control-panel h3:before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: var(--led-off);
+      border-radius: 50%;
+      margin-right: 10px;
+      box-shadow: 0 0 5px var(--led-off);
+      vertical-align: middle;
+      transition: all var(--transition-speed) ease;
+    }
+    
+    .control-panel:hover h3:before {
+      background: var(--led-blue);
+      box-shadow: 0 0 10px var(--led-blue);
+    }
+    
+    .shape-controls {
+      bottom: 20px;
+      left: 20px;
+    }
+    
+    .color-controls {
+      bottom: 20px;
+      right: 20px;
+    }
+    
+    .settings-panel {
+      top: 20px;
+      right: 20px;
+      width: 300px;
+      max-height: 80vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    
+    .settings-panel::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .settings-panel::-webkit-scrollbar-track {
+      background: rgba(16, 16, 16, 0.2);
+      border-radius: 3px;
+    }
+    
+    .settings-panel::-webkit-scrollbar-thumb {
+      background: var(--accent-lighter);
+      border-radius: 3px;
+    }
+    
+    .settings-panel::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-light);
+    }
+    
+    /* Button styles */
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    
+    button {
+      padding: 12px 16px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all var(--transition-speed) ease;
+      font-family: inherit;
+      letter-spacing: 0.5px;
+      font-weight: 400;
+      backdrop-filter: blur(var(--blur-radius));
+      -webkit-backdrop-filter: blur(var(--blur-radius));
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    /* Button highlight effect */
+    button:before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 50%;
+      background: var(--glass-highlight);
+      border-radius: 12px 12px 0 0;
+      pointer-events: none;
+      opacity: 0.4;
+    }
+    
+    button:hover {
+      background: var(--glass-lighter);
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15), 0 0 15px rgba(0, 102, 255, 0.1);
+      border-color: var(--glass-border-active);
+    }
+    
+    button:active {
+      transform: translateY(1px) scale(0.98);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      background: var(--glass-darker);
+    }
+    
+    button.active {
+      background: rgba(0, 102, 255, 0.15);
+      color: var(--primary);
+      border: 1px solid rgba(0, 102, 255, 0.3);
+      box-shadow: 
+        0 0 20px rgba(0, 102, 255, 0.2),
+        inset 0 0 5px rgba(0, 102, 255, 0.1);
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+    }
+    
+    button.active:before {
+      opacity: 0.6;
+      background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), transparent);
+    }
+    
+    /* New UI Element Styles */
+    .mode-selector {
+      width: 100%;
+      margin-bottom: 12px;
+    }
+    
+    .mode-dropdown {
+      width: 100%;
+      padding: 8px;
+      background-color: rgba(0, 20, 40, 0.6);
+      color: var(--text);
+      border: 1px solid rgba(0, 102, 255, 0.3);
+      border-radius: 5px;
+      outline: none;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 0 3px rgba(0, 102, 255, 0.5);
+    }
+    
+    .mode-dropdown:hover, .mode-dropdown:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 8px rgba(0, 102, 255, 0.4);
+    }
+    
+    .mode-dropdown option {
+      background-color: #0a1525;
+      color: #d4e8ff;
+    }
+    
+    .color-customizer {
+      margin-top: 15px;
+      padding: 12px;
+      background-color: rgba(0, 10, 30, 0.4);
+      border-radius: 5px;
+      border: 1px solid rgba(0, 102, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .color-customizer:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(0, 102, 255, 0.5), transparent);
+    }
+    
+    .color-customizer h4 {
+      margin: 0 0 12px 0;
+      font-size: 0.9em;
+      font-weight: normal;
+      color: var(--primary);
+      text-shadow: 0 0 5px rgba(0, 102, 255, 0.5);
+      letter-spacing: 1px;
+    }
+    
+    .color-picker-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .color-input-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .color-input-group label {
+      font-size: 0.85em;
+      color: var(--text);
+    }
+    
+    input[type="color"] {
+      width: 50px;
+      height: 24px;
+      border: 1px solid rgba(0, 102, 255, 0.3);
+      border-radius: 3px;
+      cursor: pointer;
+      background: none;
+      box-shadow: 0 0 5px rgba(0, 102, 255, 0.2);
+    }
+    
+    .control-button {
+      margin-top: 10px;
+      padding: 6px 12px;
+      background-color: rgba(0, 102, 255, 0.2);
+      color: var(--text);
+      border: 1px solid rgba(0, 102, 255, 0.3);
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.85em;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+      text-shadow: 0 0 3px rgba(0, 102, 255, 0.5);
+    }
+    
+    .control-button:hover {
+      background-color: rgba(0, 102, 255, 0.3);
+      box-shadow: 0 0 10px rgba(0, 102, 255, 0.4);
+    }
+    
+    .control-button:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.7), transparent);
+    }
+    
+    /* Slider styles */
+    .slider-container {
+      margin-bottom: 24px;
+      position: relative;
+      padding: 14px 16px 20px;
+      background: var(--glass-darker);
+      border-radius: 16px;
+      box-shadow: var(--inset-shadow);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(calc(var(--blur-radius) * 1.5));
+      -webkit-backdrop-filter: blur(calc(var(--blur-radius) * 1.5));
+      transition: all var(--transition-speed) ease;
+    }
+    
+    .slider-container:hover {
+      border-color: var(--glass-border-active);
+      box-shadow: 0 0 15px rgba(0, 102, 255, 0.1);
+    }
+    
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      font-size: 0.8rem;
+      position: relative;
+    }
+    
+    .slider-value {
+      color: var(--accent);
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 3px 8px;
+      font-variant-numeric: tabular-nums;
+      font-family: "SF Mono", SFMono-Regular, ui-monospace, monospace;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+      text-shadow: 0 0 5px var(--accent);
+      font-size: 0.85rem;
+      backdrop-filter: blur(var(--blur-radius));
+      -webkit-backdrop-filter: blur(var(--blur-radius));
+    }
+    
+    label {
+      color: var(--text-secondary);
+      font-weight: 400;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 1px;
+    }
+    
+    /* Slider track style */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      background: var(--slider-track);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+      display: block;
+      margin-top: 16px;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.05);
+      position: relative;
+    }
+    
+    /* Add ticks below the slider */
+    input[type="range"]::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 10px;
+      height: 10px;
+      background-image: repeating-linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.1),
+        rgba(255, 255, 255, 0.1) 1px,
+        transparent 1px,
+        transparent 10%
+      );
+      pointer-events: none;
+    }
+    
+    /* Chrome slider thumb style */
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--slider-thumb);
+      cursor: pointer;
+      box-shadow: var(--slider-thumb-shadow);
+      border: 1px solid #222;
+      position: relative;
+      z-index: 2;
+      
+      /* Inset effect with radial gradient */
+      background-image: radial-gradient(
+        circle at 30% 30%,
+        rgba(255, 255, 255, 0.3),
+        transparent 60%
+      ), var(--slider-thumb);
+    }
+    
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+      box-shadow: 0 3px 5px rgba(0, 0, 0, 0.6);
+    }
+    
+    input[type="range"]::-webkit-slider-thumb:active {
+      transform: scale(0.95);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    }
+    
+    /* Filled track effect - pseudo-element overlay */
+    .slider-container::after {
+      content: "";
+      position: absolute;
+      left: 14px;
+      right: var(--slider-fill, calc(100% - 14px)); /* Updated via JS */
+      height: 4px;
+      bottom: 24px;
+      background: var(--slider-track-highlight);
+      border-radius: 2px;
+      pointer-events: none;
+      box-shadow: 0 0 4px rgba(0, 102, 255, 0.3);
+      transition: right 0.1s ease;
+    }
+    
+    /* Tab styles */
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--panel-border);
+    }
+    
+    .tab {
+      padding: 8px 16px;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      border-radius: 0;
+      color: var(--text-secondary);
+      margin-right: 8px;
+      font-size: 0.9rem;
+    }
+    
+    .tab:hover {
+      background: transparent;
+      color: var(--text-primary);
+      transform: none;
+    }
+    
+    .tab.active {
+      color: var(--accent);
+      border-bottom: 2px solid var(--accent);
+      background: transparent;
+      box-shadow: none;
+      font-weight: 500;
+    }
+    
+    /* Toggle switch styles */
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 15px;
+      padding: 10px 14px;
+      background: var(--panel-inner);
+      border-radius: 8px;
+      box-shadow: var(--inset-shadow);
+      border: 1px solid #111;
+    }
+    
+    .toggle-label {
+      color: var(--text-secondary);
+      font-weight: 500;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.5px;
+      text-shadow: var(--text-emboss);
+    }
+    
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 54px;
+      height: 28px;
+      font-family: monospace;
+    }
+    
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .switch .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #111;
+      transition: .3s;
+      border: 1px solid #000;
+      box-shadow: 
+        inset 0 1px 3px rgba(0, 0, 0, 0.8),
+        0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+    
+    /* ON/OFF text labels */
+    .switch .slider:after {
+      content: "OFF";
+      position: absolute;
+      top: 6px;
+      right: 7px;
+      font-size: 10px;
+      color: #666;
+      text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+    }
+    
+    .switch input:checked + .slider:after {
+      content: "ON";
+      left: 9px;
+      right: auto;
+      color: var(--accent);
+      text-shadow: 0 0 4px rgba(0, 102, 255, 0.8);
+    }
+    
+    .switch .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 2px;
+      bottom: 2px;
+      background: var(--slider-thumb);
+      transition: .3s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+      border: 1px solid #222;
+      
+      /* Inset effect with radial gradient */
+      background-image: radial-gradient(
+        circle at 30% 30%,
+        rgba(255, 255, 255, 0.3),
+        transparent 60%
+      ), var(--slider-thumb);
+    }
+    
+    .switch input:checked + .slider {
+      background-color: #111;
+    }
+    
+    .switch input:checked + .slider:before {
+      transform: translateX(26px);
+      background-image: radial-gradient(
+        circle at 30% 30%,
+        rgba(255, 255, 255, 0.3),
+        transparent 60%
+      ), linear-gradient(to bottom, #66a0ff, #335599);
+    }
+    
+    .switch .slider.round {
+      border-radius: 24px;
+    }
+    
+    .switch .slider.round:before {
+      border-radius: 50%;
+    }
+    
+    /* Focus/pressed state */
+    .switch input:focus + .slider,
+    .switch input:active + .slider {
+      box-shadow: 
+        inset 0 1px 3px rgba(0, 0, 0, 0.8),
+        0 0 4px var(--accent-light);
+    }
+    
+    /* Audio controls */
+    .audio-controls {
+      margin-top: 15px;
+      padding: 14px;
+      background: var(--panel-inner);
+      border-radius: 8px;
+      box-shadow: var(--inset-shadow);
+      border: 1px solid #111;
+      margin-bottom: 10px;
+    }
+    
+    .audio-visualizer {
+      height: 50px;
+      background: #0a0a0a;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: flex-end;
+      padding: 4px;
+      overflow: hidden;
+      border: 1px solid #000;
+      box-shadow: 
+        inset 0 1px 3px rgba(0, 0, 0, 0.8),
+        0 1px 0 rgba(255, 255, 255, 0.05);
+      position: relative;
+    }
+    
+    /* Add monitor scan lines */
+    .audio-visualizer::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 1px,
+        rgba(0, 0, 0, 0.1) 1px,
+        rgba(0, 0, 0, 0.1) 2px
+      );
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    /* Add screen glow effect */
+    .audio-visualizer::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(0, 102, 255, 0.1),
+        transparent 40%
+      );
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    .audio-bars {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      align-items: flex-end;
+      gap: 1px;
+      position: relative;
+    }
+    
+    .audio-bar {
+      flex: 1;
+      background: var(--accent);
+      min-height: 2px;
+      border-radius: 1px 1px 0 0;
+      opacity: 0.7;
+      transition: height 0.05s ease;
+      box-shadow: 0 0 3px var(--accent);
+    }
+    
+    /* Make odd bars slightly different color for retro VU meter look */
+    .audio-bar:nth-child(odd) {
+      background: #00aaff;
+    }
+    
+    /* Horizontal lines in the visualizer */
+    .audio-visualizer .grid-lines {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: 2;
+      opacity: 0.2;
+    }
+    
+    .audio-visualizer .grid-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.4);
+    }
+    
+    /* Debug panel */
+    .debug-panel {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: var(--glass);
+      padding: 10px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #00ff00;
+      max-width: 300px;
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(var(--blur-radius));
+      -webkit-backdrop-filter: blur(var(--blur-radius));
+      z-index: 100;
+      max-height: 200px;
+      overflow-y: auto;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Chatbot styles */
+    /* Chat button */
+    .chat-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 60px;
+      height: 60px;
+      border-radius: 30px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      z-index: 150;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      overflow: hidden;
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.24),
+        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      cursor: pointer;
+      backdrop-filter: blur(var(--blur-radius));
+      -webkit-backdrop-filter: blur(var(--blur-radius));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    
+    .chat-button:hover {
+      transform: translateY(-3px);
+      box-shadow: 
+        0 12px 36px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+    }
+    
+    .chat-button-icon {
+      position: relative;
+      z-index: 2;
+      font-size: 28px;
+      color: var(--accent);
+      filter: drop-shadow(0 0 8px rgba(0, 102, 255, 0.5));
+    }
+    
+    .chat-button-pulse {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 45px;
+      height: 45px;
+      background: var(--accent-light);
+      border-radius: 50%;
+      opacity: 0.4;
+      z-index: 1;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.4; }
+      50% { transform: translate(-50%, -50%) scale(1.05); opacity: 0.2; }
+      100% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.4; }
+    }
+    
+    /* Chat overlay */
+    .chat-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease-out;
+    }
+    
+    .chat-overlay.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+    
+    /* Chat modal */
+    .chat-modal {
+      width: 90%;
+      max-width: 800px;
+      height: 80%;
+      max-height: 600px;
+      background: var(--glass);
+      border-radius: 20px;
+      border: 1px solid var(--glass-border);
+      overflow: hidden;
+      box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      backdrop-filter: blur(var(--blur-radius));
+      -webkit-backdrop-filter: blur(var(--blur-radius));
+      transform: scale(0.9);
+      opacity: 0;
+      transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+    }
+    
+    .chat-overlay.visible .chat-modal {
+      transform: scale(1);
+      opacity: 1;
+    }
+    
+    .chat-modal-content {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+    }
+    
+    /* Chat header */
+    .chat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .chat-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .chat-title h3 {
+      margin: 0;
+      font-weight: 600;
+    }
+    
+    .chat-status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--led-green);
+      box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+      position: relative;
+    }
+    
+    .chat-close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 24px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    
+    .chat-close:hover {
+      background: var(--glass-darker);
+      color: var(--text-primary);
+    }
+    
+    /* Chat messages */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 8px;
+      margin-bottom: 16px;
+      scroll-behavior: smooth;
+    }
+    
+    .chat-messages::-webkit-scrollbar {
+      width: 4px;
+    }
+    
+    .chat-messages::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 2px;
+    }
+    
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: var(--accent-light);
+      border-radius: 2px;
+    }
+    
+    .chat-messages::-webkit-scrollbar-thumb:hover {
+      background: var(--accent);
+    }
+    
+    .message {
+      margin-bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      animation: message-appear 0.3s ease-out;
+    }
+    
+    @keyframes message-appear {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .message-content {
+      max-width: 85%;
+      padding: 12px 16px;
+      border-radius: 18px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      position: relative;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    
+    .message-content p {
+      margin: 0;
+      color: var(--text-primary);
+    }
+    
+    .message-content p + p {
+      margin-top: 8px;
+    }
+    
+    .message-time {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      opacity: 0.7;
+    }
+    
+    .message.user {
+      align-items: flex-end;
+    }
+    
+    .message.user .message-content {
+      background: linear-gradient(135deg, var(--accent-light) 0%, rgba(0, 102, 255, 0.15) 100%);
+      color: var(--text-primary);
+      border-bottom-right-radius: 4px;
+    }
+    
+    .message.user .message-time {
+      margin-right: 8px;
+    }
+    
+    .message.assistant {
+      align-items: flex-start;
+    }
+    
+    .message.assistant .message-content {
+      background: linear-gradient(135deg, var(--glass-darker) 0%, rgba(255, 255, 255, 0.05) 100%);
+      color: var(--text-primary);
+      border-bottom-left-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .message.assistant .message-time {
+      margin-left: 8px;
+    }
+    
+    .welcome-message .message-content {
+      background: linear-gradient(135deg, rgba(0, 128, 128, 0.1) 0%, rgba(0, 128, 128, 0.05) 100%);
+      border: 1px solid rgba(0, 128, 128, 0.15);
+    }
+    
+    /* Typing indicator */
+    .message.assistant.typing {
+      margin-bottom: 10px;
+    }
+    
+    .message.assistant.typing .message-content {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      padding: 8px 0;
+      max-width: 70px;
+    }
+    
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .typing-indicator span {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background-color: var(--accent);
+      border-radius: 50%;
+      opacity: 0.6;
+      animation: typing-animation 1.5s infinite ease-in-out;
+    }
+    
+    .typing-indicator span:nth-child(1) {
+      animation-delay: 0s;
+    }
+    
+    .typing-indicator span:nth-child(2) {
+      animation-delay: 0.3s;
+    }
+    
+    .typing-indicator span:nth-child(3) {
+      animation-delay: 0.6s;
+    }
+    
+    @keyframes typing-animation {
+      0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.6;
+      }
+      30% {
+        transform: translateY(-4px);
+        opacity: 1;
+      }
+    }
+    
+    /* Chat input */
+    .chat-input-container {
+      display: flex;
+      gap: 8px;
+      background: var(--glass-darker);
+      border-radius: 24px;
+      padding: 6px 8px 6px 16px;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      transition: all 0.3s ease;
+    }
+    
+    .chat-input-container:focus-within {
+      border-color: var(--accent-light);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 102, 255, 0.2) inset;
+    }
+    
+    .chat-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      padding: 8px 0;
+      font-family: inherit;
+    }
+    
+    .chat-input::placeholder {
+      color: var(--text-secondary);
+      opacity: 0.6;
+    }
+    
+    .chat-send {
+      background: var(--accent-light);
+      border: none;
+      color: white;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .chat-send:hover {
+      background: var(--accent);
+      transform: translateY(-1px);
+    }
+    
+    .chat-send:active {
+      transform: translateY(1px);
+    }
+    
+    .send-icon {
+      font-size: 16px;
+      transform: rotate(-90deg);
+    }
+    
+    /* Settings tab in chat */
+    .chat-settings-tab {
+      border-top: 1px solid var(--glass-border);
+      margin-top: 15px;
+      padding-top: 15px;
+    }
+    
+    .settings-tab-button {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.9em;
+      color: var(--text-secondary);
+      padding: 6px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+    
+    .settings-tab-button:hover {
+      background: var(--glass-lighter);
+      color: var(--text-primary);
+    }
+    
+    /* API settings panel */
+    .settings-panel {
+      background: var(--glass-darker);
+      border-radius: 16px;
+      border: 1px solid var(--glass-border);
+      padding: 1.2rem;
+      margin-top: 10px;
+    }
+    
+    .settings-panel h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .settings-info {
+      margin-bottom: 1rem;
+      border-left: 2px solid var(--accent-light);
+      padding-left: 12px;
+      font-size: 0.9em;
+    }
+    
+    .settings-info p {
+      margin: 5px 0;
+      color: var(--text-secondary);
+    }
+    
+    .settings-info a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    
+    .settings-info a:hover {
+      text-decoration: underline;
+      color: var(--accent-light);
+    }
+    
+    /* Form elements for settings */
+    .input-container {
+      margin-bottom: 1rem;
+    }
+    
+    .input-container label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    
+    .api-key-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    
+    .api-key-input {
+      width: 100%;
+      padding: 10px 35px 10px 12px;
+      border-radius: 8px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      color: var(--text-primary);
+      font-family: monospace;
+      letter-spacing: 1px;
+      transition: all 0.2s ease;
+    }
+    
+    .api-key-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(0, 102, 255, 0.2);
+      outline: none;
+    }
+    
+    .toggle-visibility-btn {
+      position: absolute;
+      right: 10px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0;
+      transition: all 0.2s ease;
+    }
+    
+    .toggle-visibility-btn:hover {
+      color: var(--text-primary);
+    }
+    
+    .api-select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      color: var(--text-primary);
+      transition: all 0.2s ease;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255, 255, 255, 0.7)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+    
+    .api-select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(0, 102, 255, 0.2);
+      outline: none;
+    }
+    
+    /* Buttons */
+    .button-container {
+      display: flex;
+      gap: 10px;
+      margin-top: 1.5rem;
+    }
+    
+    .primary-button, .secondary-button {
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      flex-grow: 1;
+    }
+    
+    .primary-button {
+      background: var(--accent);
+      color: white;
+    }
+    
+    .primary-button:hover {
+      background: #0055cc;
+      transform: translateY(-1px);
+    }
+    
+    .primary-button:active {
+      transform: translateY(1px);
+    }
+    
+    .secondary-button {
+      background: var(--glass);
+      color: var(--text-secondary);
+      border: 1px solid var(--glass-border);
+    }
+    
+    .secondary-button:hover {
+      color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+    
+    .secondary-button:active {
+      transform: translateY(1px);
+    }
+    
+    /* Status message */
+    .api-status {
+      margin-top: 1rem;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      display: none;
+    }
+    
+    .api-status.success {
+      background: rgba(76, 175, 80, 0.1);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      color: #4CAF50;
+      display: block;
+    }
+    
+    .api-status.error {
+      background: rgba(244, 67, 54, 0.1);
+      border: 1px solid rgba(244, 67, 54, 0.3);
+      color: #F44336;
+      display: block;
+    }
+    
+    /* Fade animations */
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes fade-out {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(10px); }
+    }
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .chat-modal {
+        width: 95%;
+        height: 90%;
+      }
+      
+      .chat-modal-content {
+        padding: 16px;
+      }
+      
+      .message-content {
+        max-width: 90%;
+      }
+      
+      .button-container {
+        flex-direction: column;
+      }
+    }
+  </style>
+  <!-- Include Chat API components -->
+  <script src="chatbot-component/api.js"></script>
+  <script src="chatbot-component/chatbot.js"></script>
+  <script src="chatbot-component/connection.js"></script>
+  <script src="chatbot-component/debug.js"></script>
+  <script src="chatbot-component/three-test.js"></script>
+  
+  <!-- SimulatorChatIntegration - Bridges the simulator and chat components -->
+  <script>
+    /**
+     * SimulatorChatIntegration
+     * Handles communication between the particle simulator and the chatbot
+     */
+    const SimulatorChatIntegration = {
+      initialized: false,
+      
+      // Initialize the integration
+      init() {
+        if (this.initialized) return;
+        
+        // Listen for chat messages from user
+        document.addEventListener('chat:message:sent', this.handleChatMessage.bind(this));
+        
+        // Expose to window for global access
+        window.SimulatorChatIntegration = this;
+        
+        this.initialized = true;
+        console.log('Simulator-Chat integration initialized');
+      },
+      
+      // Handle incoming chat messages
+      handleChatMessage(event) {
+        console.log('Chat message received in simulator:', event.detail?.message);
+        const message = event.detail?.message;
+        
+        if (!message) return;
+        
+        // Process message for simulator commands
+        this.processCommand(message);
+      },
+      
+      // Process commands embedded in chat messages
+      processCommand(message) {
+        // Convert to lowercase for case-insensitive matching
+        const lowerMessage = message.toLowerCase();
+        
+        // Check for command patterns
+        if (lowerMessage.includes('/mode') || lowerMessage.includes('change mode') || lowerMessage.includes('switch mode')) {
+          this.handleModeCommand(lowerMessage);
+        } else if (lowerMessage.includes('/color') || lowerMessage.includes('change color') || lowerMessage.includes('set color')) {
+          this.handleColorCommand(lowerMessage);
+        } else if (lowerMessage.includes('/particles') || lowerMessage.includes('particle count')) {
+          this.handleParticleCommand(lowerMessage);
+        } else if (lowerMessage.includes('/mono') || lowerMessage.includes('monochrome')) {
+          this.handleMonochromeCommand(lowerMessage);
+        } else if (lowerMessage.includes('/help')) {
+          this.sendResponse('Available commands:\n- /mode [sphere|ring|donut|wave|entanglement|free]\n- /color [default|spectrum|pulse|quantum]\n- /particles [number|increase|decrease]\n- /mono [on|off]');
+        } else {
+          // Forward message to any external AI service
+          // Currently just acknowledges receipt
+          this.sendResponse(`I've received your message. To control the simulator, try commands like "/mode sphere" or "/color spectrum".`);
+        }
+      },
+      
+      // Handle mode change commands
+      handleModeCommand(message) {
+        let mode = 'sphere';
+        
+        if (message.includes('sphere')) mode = 'sphere';
+        else if (message.includes('ring')) mode = 'ring';
+        else if (message.includes('donut')) mode = 'donut';
+        else if (message.includes('entanglement')) mode = 'entanglement';
+        else if (message.includes('wave')) mode = 'wave';
+        else if (message.includes('free')) mode = 'free';
+        
+        // Find simulator instance
+        const simulator = window.simulator;
+        if (simulator) {
+          // Set the mode
+          if (simulator.setMode) {
+            simulator.setMode(mode);
+            this.sendResponse(`Changed visualization mode to ${mode}.`);
+          } else {
+            this.sendResponse(`The simulator doesn't support setting modes directly.`);
+          }
+        } else {
+          this.sendResponse('Cannot find simulator instance.');
+        }
+      },
+      
+      // Handle color change commands
+      handleColorCommand(message) {
+        let colorMode = 'default';
+        
+        if (message.includes('spectrum')) colorMode = 'spectrum';
+        else if (message.includes('pulse')) colorMode = 'pulse';
+        else if (message.includes('quantum')) colorMode = 'quantum';
+        else if (message.includes('default')) colorMode = 'default';
+        else if (message.includes('#')) {
+          // Extract hex color if present
+          const hexMatch = message.match(/#[0-9a-f]{6}/i);
+          if (hexMatch) {
+            colorMode = 'custom';
+            const customColor = hexMatch[0];
+            
+            // Set custom color
+            const simulator = window.simulator;
+            if (simulator && simulator.setColorMode) {
+              simulator.setCustomColor(customColor);
+              this.sendResponse(`Set custom color to ${customColor}.`);
+              return;
+            }
+          }
+        }
+        
+        // Set the color mode
+        const simulator = window.simulator;
+        if (simulator && simulator.setColorMode) {
+          simulator.setColorMode(colorMode);
+          this.sendResponse(`Changed color mode to ${colorMode}.`);
+        } else {
+          this.sendResponse('Cannot change color mode on this simulator.');
+        }
+      },
+      
+      // Handle particle count commands
+      handleParticleCommand(message) {
+        const simulator = window.simulator;
+        if (!simulator || !simulator.settings) {
+          this.sendResponse('Cannot adjust particle count.');
+          return;
+        }
+        
+        let currentCount = simulator.settings.particleCount || 500;
+        let newCount = currentCount;
+        
+        if (message.includes('increase') || message.includes('more')) {
+          newCount = Math.min(currentCount * 1.5, 2000);
+        } else if (message.includes('decrease') || message.includes('less') || message.includes('fewer')) {
+          newCount = Math.max(currentCount * 0.7, 100);
+        } else if (message.includes('max')) {
+          newCount = 2000;
+        } else if (message.includes('min')) {
+          newCount = 100;
+        } else {
+          // Extract numeric value if present
+          const numMatch = message.match(/\d+/);
+          if (numMatch) {
+            newCount = Math.min(Math.max(parseInt(numMatch[0], 10), 100), 2000);
+          }
+        }
+        
+        newCount = Math.round(newCount);
+        
+        if (simulator.updateParticleCount) {
+          simulator.updateParticleCount(newCount);
+          this.sendResponse(`Updated particle count to ${newCount}.`);
+        } else if (simulator.settings) {
+          simulator.settings.particleCount = newCount;
+          this.sendResponse(`Set particle count to ${newCount}. You may need to restart the simulator to see changes.`);
+        } else {
+          this.sendResponse('Cannot adjust particle count on this simulator.');
+        }
+      },
+      
+      // Handle monochrome toggle commands
+      handleMonochromeCommand(message) {
+        const simulator = window.simulator;
+        if (!simulator) {
+          this.sendResponse('Cannot toggle monochrome mode.');
+          return;
+        }
+        
+        let enableMono = true;
+        
+        if (message.includes('off') || message.includes('disable') || message.includes('false')) {
+          enableMono = false;
+        }
+        
+        // Ensure monochrome property exists
+        if (typeof simulator.monochrome === 'undefined') {
+          simulator.monochrome = false;
+        }
+        
+        // Toggle monochrome
+        simulator.monochrome = enableMono;
+        
+        // Update UI toggle if it exists
+        const monoToggle = document.getElementById('monoToggle');
+        if (monoToggle) {
+          monoToggle.checked = enableMono;
+        }
+        
+        this.sendResponse(`Monochrome mode ${enableMono ? 'enabled' : 'disabled'}.`);
+      },
+      
+      // Send a response from the simulator to the chat
+      sendResponse(message) {
+        if (!message) return;
+        
+        console.log('Simulator sending response:', message);
+        
+        // Create and dispatch the simulator response event
+        const event = new CustomEvent('simulator:response', {
+          detail: { message }
+        });
+        
+        document.dispatchEvent(event);
+        
+        // Also use the global function if available (fallback)
+        if (typeof window.addSimulatorMessage === 'function') {
+          window.addSimulatorMessage(message);
+        }
+      }
+    };
+    
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      SimulatorChatIntegration.init();
+      console.log("DOM loaded, initializing simulator chat integration");
+    });
+    
+    // Backup initialization in case DOMContentLoaded already fired
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      setTimeout(() => {
+        SimulatorChatIntegration.init();
+        console.log("Using backup initialization for simulator chat integration");
+        
+        // Also ensure the chat button is working
+        const chatBtn = document.getElementById('chatBtn');
+        if (chatBtn) {
+          console.log("Found chat button, adding click listener");
+          chatBtn.addEventListener('click', () => {
+            console.log("Chat button clicked");
+            const chatOverlay = document.getElementById('chatOverlay');
+            if (chatOverlay) {
+              chatOverlay.classList.add('visible');
+              document.body.style.overflow = 'hidden';
+            }
+          });
+        } else {
+          console.error("Chat button not found!");
+        }
+        
+        // Ensure close button works too
+        const chatClose = document.getElementById('chatClose');
+        if (chatClose) {
+          chatClose.addEventListener('click', () => {
+            const chatOverlay = document.getElementById('chatOverlay');
+            if (chatOverlay) {
+              chatOverlay.classList.remove('visible');
+              document.body.style.overflow = '';
+            }
+          });
+        }
+      }, 100);
+    }
+  </script>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loadingScreen">
+    <div style="text-align: center; padding: 20px;">
+      <h2 style="margin-bottom: 20px; color: var(--accent);">Quantum Particle Network</h2>
+      <div style="width: 100px; height: 4px; background: var(--glass); margin: 0 auto; position: relative; overflow: hidden; border-radius: 2px;">
+        <div id="loadingBar" style="position: absolute; top: 0; left: 0; height: 100%; width: 30%; background: var(--accent); border-radius: 2px; animation: loading 1.5s infinite ease-in-out;"></div>
+      </div>
+      <p style="margin-top: 20px; color: var(--text-secondary); font-size: 14px;">Initializing quantum field...</p>
+      <div id="loadingStatus" style="margin-top: 10px; font-size: 12px; color: var(--text-secondary); font-family: monospace;"></div>
+    </div>
+  </div>
+  
+  <!-- Three.js Canvas -->
+  <canvas id="particleCanvas"></canvas>
+  
+  <!-- Shape Mode Control -->
+  <div class="control-panel shape-controls">
+    <h3>Shape Mode</h3>
+    <div class="mode-selector">
+      <select id="shapeMode" class="mode-dropdown">
+        <option value="free">Free Movement</option>
+        <option value="sphere">Sphere</option>
+        <option value="ring">Ring</option>
+        <option value="donut">Donut</option>
+        <option value="toroid">Toroid</option>
+        <option value="entanglement">Entanglement</option>
+        <option value="wave">Wave (Current)</option>
+        <option value="classicWave">Wave (Classic)</option>
+        <option value="vortex">Vortex</option>
+        <option value="spiral">Spiral</option>
+        <option value="grid">Grid</option>
+      </select>
+    </div>
+    <div class="button-group" id="shapeModes">
+      <button data-mode="free">Free</button>
+      <button data-mode="sphere">Sphere</button>
+      <button data-mode="ring">Ring</button>
+      <button data-mode="donut">Donut</button>
+      <button data-mode="wave">Wave</button>
+      <button data-mode="entanglement">Entangle</button>
+    </div>
+  </div>
+
+  <!-- Color Mode Control -->
+  <div class="control-panel color-controls">
+    <h3>Color Mode</h3>
+    <div class="mode-selector">
+      <select id="colorMode" class="mode-dropdown">
+        <option value="default">Default</option>
+        <option value="spectrum">Spectrum</option>
+        <option value="pulse">Pulse</option>
+        <option value="quantum">Quantum</option>
+        <option value="classic">Classic</option>
+        <option value="custom">Custom</option>
+      </select>
+    </div>
+    <div class="button-group" id="colorModes">
+      <button data-mode="default" class="active">Default</button>
+      <button data-mode="spectrum">Spectrum</button>
+      <button data-mode="pulse">Pulse</button>
+      <button data-mode="quantum">Quantum</button>
+      <button data-mode="classic">Classic</button>
+      <button data-mode="custom">Custom</button>
+    </div>
+    
+    <div class="color-customizer">
+      <h4>Customize Colors</h4>
+      <div class="color-picker-container">
+        <div class="color-input-group">
+          <label for="particleColor">Particle Color</label>
+          <input type="color" id="particleColor" value="#ff6600">
+        </div>
+        <div class="color-input-group">
+          <label for="connectionColor">Connection Color</label>
+          <input type="color" id="connectionColor" value="#4488ff">
+        </div>
+        <button id="applyCustomColors" class="control-button">Apply Colors</button>
+      </div>
+    </div>
+    
+    <div class="toggle-container">
+      <label for="monoToggle" class="toggle-label">Monochrome</label>
+      <label class="switch">
+        <input type="checkbox" id="monoToggle" checked>
+        <span class="slider round"></span>
+      </label>
+    </div>
+    <div class="toggle-container">
+      <label for="audioToggle" class="toggle-label">Audio Reactive</label>
+      <label class="switch">
+        <input type="checkbox" id="audioToggle">
+        <span class="slider round"></span>
+      </label>
+    </div>
+    <div class="toggle-container">
+      <label for="focusToggle" class="toggle-label">Focus Mode</label>
+      <label class="switch">
+        <input type="checkbox" id="focusToggle">
+        <span class="slider round"></span>
+      </label>
+    </div>
+    <div id="audioControls" class="audio-controls" style="display:none;">
+      <div class="audio-visualizer">
+        <div class="audio-bars"></div>
+      </div>
+      <div class="slider-container">
+        <div class="slider-header">
+          <label>Audio Sensitivity</label>
+          <span class="slider-value" id="sensitivityValue">3.00</span>
+        </div>
+        <input type="range" id="sensitivitySlider" min="1" max="10" step="0.5" value="3">
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Panel -->
+  <div class="control-panel settings-panel" id="settingsPanel">
+    <h3>Quantum Simulator</h3>
+    
+    <div class="tabs">
+      <button class="tab active" data-tab="particles">Particles</button>
+      <button class="tab" data-tab="interactions">Interactions</button>
+      <button class="tab" data-tab="effects">Effects</button>
+    </div>
+    
+    <div id="particles-tab" class="tab-content">
+      <!-- Will be populated by JS -->
+    </div>
+    
+    <div id="interactions-tab" class="tab-content" style="display:none">
+      <!-- Will be populated by JS -->
+    </div>
+    
+    <div id="effects-tab" class="tab-content" style="display:none">
+      <!-- Will be populated by JS -->
+    </div>
+
+    <div style="margin-top: 20px;">
+      <button id="toggleDebug">Show Debug Console</button>
+    </div>
+  </div>
+  
+  <div class="quantum-logo">Quantum Simulator</div>
+  
+  <!-- API Settings Panel -->
+  <div class="control-panel api-settings-panel" style="display: none;">
+    <h3>API Settings</h3>
+    <div class="settings-container">
+      <div class="settings-section">
+        <div class="settings-header">
+          <span class="settings-icon">🔑</span>
+          <h4>DeepSeek API Configuration</h4>
+        </div>
+        <div class="settings-info">
+          <p>Enter your DeepSeek API key to enable AI chat functionality with DeepSeek R1.</p>
+          <p><small>You can get an API key from <a href="https://platform.deepseek.com" target="_blank" rel="noopener noreferrer">platform.deepseek.com</a></small></p>
+        </div>
+        <div class="input-container">
+          <label for="deepseekApiKey">API Key</label>
+          <div class="api-key-input-wrapper">
+            <input type="password" id="deepseekApiKey" placeholder="Enter your DeepSeek API key" class="api-key-input">
+            <button class="toggle-visibility-btn" id="toggleApiVisibility" aria-label="Toggle visibility">👁️</button>
+          </div>
+        </div>
+        <div class="input-container">
+          <label for="apiModel">Model</label>
+          <select id="apiModel" class="api-select">
+            <option value="deepseek-r1">DeepSeek R1</option>
+            <option value="deepseek-r1-lite">DeepSeek R1 Lite</option>
+          </select>
+        </div>
+        <div class="button-container">
+          <button id="saveApiSettings" class="primary-button">Save Settings</button>
+          <button id="testApiConnection" class="secondary-button">Test Connection</button>
+        </div>
+        <div id="apiStatus" class="api-status"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Enhanced Image Upload Panel -->
+  <div class="control-panel image-upload-panel" style="display: none;">
+    <h3>Image to Particles</h3>
+    <div class="image-upload-container">
+      <div class="image-upload-intro">
+        <p>Transform images into dynamic particle formations</p>
+      </div>
+      
+      <label class="image-upload-button">
+        <span class="upload-icon">📁</span>
+        <span class="upload-text">Select Image</span>
+        <input type="file" class="image-upload-input" id="imageUpload" accept="image/png, image/jpeg, image/webp">
+      </label>
+      
+      <div class="image-preview" id="imagePreview">
+        <img id="previewImg" src="#" alt="Preview">
+        <div class="preview-overlay">
+          <span class="preview-resolution" id="previewResolution"></span>
+        </div>
+      </div>
+      
+      <div class="slider-container image-density-slider" id="densitySliderContainer">
+        <div class="slider-header">
+          <label>Sampling Density</label>
+          <span class="slider-value" id="densityValue">5.00</span>
+        </div>
+        <input type="range" id="densitySlider" min="1" max="10" step="0.5" value="5">
+        <div class="slider-labels">
+          <span>Low</span>
+          <span>High</span>
+        </div>
+      </div>
+      
+      <div class="sampling-modes-container">
+        <span class="section-label">Sampling Mode</span>
+        <div class="button-group" id="samplingModes">
+          <button data-mode="uniform" class="active">Uniform</button>
+          <button data-mode="edges">Edges</button>
+          <button data-mode="brightness">Brightness</button>
+        </div>
+      </div>
+      
+      <div class="image-actions">
+        <button class="image-action-button reset-button" id="resetImage">
+          <span class="action-icon">↻</span>
+          <span>Reset</span>
+        </button>
+        <button class="image-action-button close-button" id="closeImagePanel">
+          <span class="action-icon">×</span>
+          <span>Close</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Mobile Controls -->
+  <div class="mobile-controls">
+    <button class="mobile-control-button" data-action="shape">
+      <span>◆</span>
+    </button>
+    <button class="mobile-control-button" data-action="color">
+      <span>🎨</span>
+    </button>
+    <button class="mobile-control-button" data-action="settings">
+      <span>⚙️</span>
+    </button>
+    <button class="mobile-control-button" data-action="upload">
+      <span>📷</span>
+    </button>
+  </div>
+  
+  <!-- Chatbot components -->
+  <div id="chatComponents"></div>
+  
+  <!-- Debug panel -->
+  <div class="debug-panel" id="debugPanel">
+    <div>Debug Info:</div>
+    <div id="debugInfo"></div>
+  </div>
+  
+  <!-- Integration Scripts -->
+  <script>
+    // Quantum Particle Network Simulator with Chat Integration
+    document.addEventListener('DOMContentLoaded', () => {
+      // Global simulator instance to be used across functions
+      let simulator = null;
+      
+      // Debug function
+      function debug(message) {
+        const debugPanel = document.getElementById('debugPanel');
+        const debugInfo = document.getElementById('debugInfo');
+        
+        if (debugPanel && debugInfo) {
+          debugInfo.innerHTML += `<div>${message}</div>`;
+          // Auto-scroll
+          debugPanel.scrollTop = debugPanel.scrollHeight;
+        }
+        console.log(`[DEBUG] ${message}`);
+      }
+      
+      // Update loading status
+      function updateLoadingStatus(message) {
+        const loadingStatus = document.getElementById('loadingStatus');
+        if (loadingStatus) {
+          loadingStatus.textContent = message;
+        }
+        debug(message);
+      }
+      
+      // Create chat components
+      function createChatComponents() {
+        try {
+          updateLoadingStatus("Creating chat components...");
+          
+          // Create chat button
+          const chatButton = document.createElement('button');
+          chatButton.id = 'chatBtn';
+          chatButton.className = 'chat-button';
+          chatButton.innerHTML = `
+            <span class="chat-button-icon">💬</span>
+            <span class="chat-button-pulse"></span>
+          `;
+          
+          // Create chat overlay
+          const chatOverlay = document.createElement('div');
+          chatOverlay.id = 'chatOverlay';
+          chatOverlay.className = 'chat-overlay';
+          chatOverlay.innerHTML = `
+            <!-- Modal Chat Interface -->
+            <div class="chat-modal" id="chatModal">
+              <div class="chat-modal-content">
+                <div class="chat-header">
+                  <div class="chat-title">
+                    <div class="chat-status-indicator"></div>
+                    <h3>Quantum Assistant</h3>
+                  </div>
+                  <div class="chat-controls">
+                    <button class="chat-close" id="chatClose" aria-label="Close Chat">×</button>
+                  </div>
+                </div>
+                <div class="chat-messages" id="chatMessages">
+                  <div class="message assistant welcome-message">
+                    <div class="message-content">
+                      <p>Hello! I'm your Quantum Simulator Assistant. Type /help to see available commands.</p>
+                    </div>
+                    <span class="message-time">Just now</span>
+                  </div>
+                </div>
+                <div class="chat-input-container">
+                  <input type="text" class="chat-input" id="chatInput" placeholder="Type a message...">
+                  <button class="chat-send" id="chatSend" aria-label="Send Message">
+                    <span class="send-icon">↑</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+          
+          // Create settings panel inside the chat modal
+          const settingsPanel = document.createElement('div');
+          settingsPanel.className = 'settings-panel';
+          settingsPanel.innerHTML = `
+            <h2>API Settings</h2>
+            <div class="settings-info">
+              <p>Enter your OpenAI API key to start chatting.</p>
+              <p><small>You can get an API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">platform.openai.com/api-keys</a></small></p>
+            </div>
+            
+            <!-- API Key Input -->
+            <div class="input-container">
+              <label for="apiKeyInput">API Key</label>
+              <div class="api-key-input-wrapper">
+                <input type="password" id="apiKeyInput" placeholder="Enter your OpenAI API key" class="api-key-input">
+                <button class="toggle-visibility-btn" id="toggleApiVisibility" aria-label="Toggle visibility">👁️</button>
+              </div>
+            </div>
+            
+            <!-- Model Selection -->
+            <div class="input-container">
+              <label for="modelSelect">Model</label>
+              <select id="modelSelect" class="api-select">
+                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                <option value="gpt-4">GPT-4</option>
+                <option value="gpt-4-turbo">GPT-4 Turbo</option>
+              </select>
+            </div>
+            
+            <!-- Buttons -->
+            <div class="button-container">
+              <button id="saveApiSettings" class="primary-button">Save Settings</button>
+              <button id="testApiConnection" class="secondary-button">Test Connection</button>
+            </div>
+            
+            <!-- Status Messages -->
+            <div id="apiStatus" class="api-status"></div>
+          `;
+          
+          // Add components to page
+          document.getElementById('chatComponents').appendChild(chatButton);
+          document.getElementById('chatComponents').appendChild(chatOverlay);
+          
+          // Add settings tab to chat modal
+          const chatModalContent = chatOverlay.querySelector('.chat-modal-content');
+          if (chatModalContent) {
+            // Create settings tab
+            const settingsTab = document.createElement('div');
+            settingsTab.className = 'chat-settings-tab';
+            
+            settingsTab.innerHTML = `
+              <div class="settings-tab-button">
+                <span style="font-size:1.2em;">⚙️</span> API Settings
+              </div>
+              <div class="settings-tab-content" style="display: none; margin-top: 10px;">
+              </div>
+            `;
+            
+            const tabContent = settingsTab.querySelector('.settings-tab-content');
+            tabContent.appendChild(settingsPanel);
+            
+            chatModalContent.appendChild(settingsTab);
+            
+            // Add click handler for settings tab
+            const tabButton = settingsTab.querySelector('.settings-tab-button');
+            if (tabButton && tabContent) {
+              tabButton.addEventListener('click', () => {
+                const isVisible = tabContent.style.display !== 'none';
+                tabContent.style.display = isVisible ? 'none' : 'block';
+              });
+            }
+          }
+          
+          debug('Chat components created successfully');
+          
+          return true;
+        } catch (error) {
+          debug(`Error creating chat components: ${error.message}`);
+          console.error('Error creating chat:', error);
+          return false;
+        }
+      }
+      
+      // Simulator integration
+      const SimulatorIntegration = {
+        // Reference to simulator component
+        simulatorComponent: null,
+        
+        // Initialize integration
+        init(simulatorRef) {
+          this.simulatorComponent = simulatorRef;
+          this.setupEventHandlers();
+          debug('Chat integration initialized with simulator');
+          return this;
+        },
+        
+        // Set up event handlers for chat-simulator communication
+        setupEventHandlers() {
+          // Listen for chat messages
+          document.addEventListener('chat:message:sent', this.handleChatMessage.bind(this));
+        },
+        
+        // Handle messages from the chat
+        handleChatMessage(event) {
+          const message = event.detail?.message || '';
+          if (!message) return;
+          
+          // Process the message for simulator commands
+          const command = this.extractCommand(message);
+          if (command) {
+            this.executeSimulatorCommand(command.name, command.params);
+          }
+        },
+        
+        // Extract command from chat message
+        extractCommand(message) {
+          // Commands start with "/" or "!"
+          const commandRegex = /^\s*[\/!]([\w]+)(?:\s+(.+))?$/i;
+          const match = message.match(commandRegex);
+          
+          if (match) {
+            const commandName = match[1].toLowerCase();
+            const paramsStr = match[2] || '';
+            const params = paramsStr.split(' ').filter(p => p.trim());
+            
+            return {
+              name: commandName,
+              params: params
+            };
+          }
+          
+          // Natural language commands
+          const nlCommands = {
+            'change color': 'color',
+            'set color': 'color',
+            'switch to sphere': 'mode',
+            'switch to ring': 'mode',
+            'make it faster': 'speed',
+            'slow down': 'speed',
+            'increase particles': 'particles',
+            'decrease particles': 'particles',
+            'save state': 'save',
+            'load state': 'load'
+          };
+          
+          for (const [phrase, command] of Object.entries(nlCommands)) {
+            if (message.toLowerCase().includes(phrase)) {
+              return {
+                name: command,
+                params: [message] // Pass the full message for context
+              };
+            }
+          }
+          
+          return null;
+        },
+        
+        // Execute a simulator command
+        executeSimulatorCommand(command, params) {
+          debug(`Executing simulator command: ${command} with params: ${params.join(', ')}`);
+          
+          if (!this.simulatorComponent) {
+            this.sendResponseToChat('Simulator component not initialized');
+            return;
+          }
+          
+          // Map commands to simulator functions
+          const commandMap = {
+            'mode': this.setSimulatorMode.bind(this),
+            'color': this.setSimulatorColor.bind(this),
+            'particles': this.setParticleCount.bind(this),
+            'speed': this.setSpeed.bind(this),
+            'help': this.showHelp.bind(this)
+          };
+          
+          // Execute the command if supported
+          if (commandMap[command]) {
+            commandMap[command](params);
+          } else {
+            this.sendResponseToChat(`Unknown command: ${command}. Type /help to see available commands.`);
+          }
+        },
+        
+        // Set visualization mode
+        setSimulatorMode(params) {
+          const modeParam = params[0]?.toLowerCase() || '';
+          let mode = 'sphere'; // Default
+          
+          // Extract mode from parameter or natural language
+          if (modeParam.includes('sphere')) {
+            mode = 'sphere';
+          } else if (modeParam.includes('ring')) {
+            mode = 'ring';
+          } else if (modeParam.includes('donut') || modeParam.includes('torus')) {
+            mode = 'donut';
+          } else if (modeParam.includes('free')) {
+            mode = 'free';
+          }
+          
+          // Update simulator state
+          if (this.simulatorComponent && typeof this.simulatorComponent.setMode === 'function') {
+            this.simulatorComponent.setMode(mode);
+            this.sendResponseToChat(`Visualization mode changed to ${mode}`);
+          }
+        },
+        
+        // Set color mode or custom colors
+        setSimulatorColor(params) {
+          const colorParam = params.join(' ').toLowerCase();
+          let colorMode = 'default';
+          
+          // Extract color info from parameters
+          if (colorParam.includes('spectrum') || colorParam.includes('rainbow')) {
+            colorMode = 'spectrum';
+          } else if (colorParam.includes('pulse')) {
+            colorMode = 'pulse';
+          } else if (colorParam.includes('custom')) {
+            colorMode = 'custom';
+          }
+          
+          // Update simulator state
+          if (this.simulatorComponent && typeof this.simulatorComponent.setColorMode === 'function') {
+            this.simulatorComponent.setColorMode(colorMode);
+            this.sendResponseToChat(`Color mode changed to ${colorMode}`);
+          }
+        },
+        
+        // Set particle count
+        setParticleCount(params) {
+          const param = params.join(' ').toLowerCase();
+          let count = 1000; // Default
+          
+          if (param.includes('more') || param.includes('increase')) {
+            count = 2000;
+          } else if (param.includes('less') || param.includes('decrease')) {
+            count = 500;
+          } else {
+            // Try to extract a number
+            const numberMatch = param.match(/(\d+)/);
+            if (numberMatch) {
+              count = parseInt(numberMatch[1], 10);
+            }
+          }
+          
+          // Update simulator state
+          if (this.simulatorComponent && typeof this.simulatorComponent.setParticleCount === 'function') {
+            this.simulatorComponent.setParticleCount(count);
+            this.sendResponseToChat(`Particle count updated to ${count}`);
+          }
+        },
+        
+        // Set simulation speed
+        setSpeed(params) {
+          const param = params.join(' ').toLowerCase();
+          let speed = 'normal'; // Default
+          
+          if (param.includes('faster') || param.includes('increase')) {
+            speed = 'fast';
+          } else if (param.includes('slower') || param.includes('decrease')) {
+            speed = 'slow';
+          }
+          
+          // Update simulator state
+          if (this.simulatorComponent && typeof this.simulatorComponent.setSpeed === 'function') {
+            this.simulatorComponent.setSpeed(speed);
+            this.sendResponseToChat(`Simulation speed set to ${speed}`);
+          }
+        },
+        
+        // Show help information
+        showHelp() {
+          const helpText = `
+Available commands:
+/mode [sphere|ring|donut|free] - Change visualization mode
+/color [default|spectrum|pulse] - Change color mode
+/particles [number|increase|decrease] - Adjust particle count
+/speed [faster|slower] - Adjust simulation speed
+/help - Show this help message
+
+You can also use natural language like "change color to rainbow" or "switch to sphere mode".
+          `;
+          
+          this.sendResponseToChat(helpText);
+        },
+        
+        // Send a response message to the chat
+        sendResponseToChat(message) {
+          if (!message) return;
+          
+          // Create and dispatch event
+          const event = new CustomEvent('simulator:response', {
+            detail: { message }
+          });
+          
+          document.dispatchEvent(event);
+        }
+      };
+      
+      // Initialize simulator
+      function initializeSimulator() {
+        updateLoadingStatus("Initializing particle simulator...");
+        
+        try {
+          // Check if Three.js is loaded
+          if (typeof THREE === 'undefined') {
+            throw new Error("Three.js library not loaded");
+          }
+          
+          // Three.js setup
+          const canvas = document.getElementById('particleCanvas');
+          if (!canvas) {
+            throw new Error("Canvas element not found!");
+          }
+        
+        // Create a simulator adapter with Three.js implementation
+        const simulatorAdapter = {
+          // Modes and properties
+          mode: 'sphere',
+          colorMode: 'default',
+          
+          // Settings
+          settings: {
+            particleCount: 1000,
+            particleSize: 0.3,
+            sphereRadius: 15,
+            connectionDistance: 5,
+            connectionOpacity: 0.7,
+            movementSpeed: 0.01,
+            containmentForce: 0.05,
+            velocityDamping: 0.95,
+            interactionStrength: 0.1,
+            interactionRadius: 10,
+            pulseFrequency: 1.5,
+            pulseStrength: 0.2
+          },
+          
+          // Initialize
+          init() {
+            updateLoadingStatus("Setting up particle system...");
+            
+            // Setup Three.js
+            this.setupThreeJS();
+            
+            // Generate initial target positions
+            this.updateTargetPositions();
+            
+            // Hide loading screen after initialization is complete
+            setTimeout(() => {
+              const loadingScreen = document.getElementById('loadingScreen');
+              if (loadingScreen) {
+                loadingScreen.style.opacity = 0;
+                loadingScreen.style.transition = 'opacity 1s ease-out';
+                setTimeout(() => {
+                  loadingScreen.style.display = 'none';
+                }, 1000);
+              }
+            }, 500);
+            
+            return this;
+          },
+          
+          // Setup Three.js implementation
+          setupThreeJS() {
+            debug("Setting up Three.js scene");
+            
+            try {
+              // Create scene, camera, renderer
+              this.scene = new THREE.Scene();
+              this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+              this.camera.position.z = 30;
+              
+              this.renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                canvas: document.getElementById('particleCanvas'),
+                alpha: true
+              });
+              this.renderer.setSize(window.innerWidth, window.innerHeight);
+              this.renderer.setClearColor(0x000000);
+              
+              // Create particles
+              const particleCount = this.settings.particleCount;
+              this.particles = new THREE.BufferGeometry();
+              const positions = new Float32Array(particleCount * 3);
+              const colors = new Float32Array(particleCount * 3);
+              this.velocities = new Float32Array(particleCount * 3);
+              
+              // Initialize particle positions and colors
+              for (let i = 0; i < particleCount; i++) {
+                const i3 = i * 3;
+                const radius = this.settings.sphereRadius;
+                
+                // Random initial positions
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const r = radius * Math.pow(Math.random(), 0.5);
+                
+                positions[i3] = r * Math.sin(phi) * Math.cos(theta);
+                positions[i3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                positions[i3 + 2] = r * Math.cos(phi);
+                
+                // Default colors - fire orange
+                colors[i3] = 1.0;     // Red
+                colors[i3 + 1] = 0.4;  // Green
+                colors[i3 + 2] = 0.0;  // Blue
+                
+                // Zero initial velocities
+                this.velocities[i3] = 0;
+                this.velocities[i3 + 1] = 0;
+                this.velocities[i3 + 2] = 0;
+              }
+              
+              this.particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+              this.particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+              
+              // Create material and particle system
+              this.material = new THREE.PointsMaterial({
+                size: this.settings.particleSize,
+                vertexColors: true,
+                transparent: true,
+                opacity: 1.0,
+                blending: THREE.AdditiveBlending,
+                sizeAttenuation: true
+              });
+              
+              this.particleSystem = new THREE.Points(this.particles, this.material);
+              this.scene.add(this.particleSystem);
+              
+              // Store positions and colors for animation
+              this.positions = positions;
+              this.colors = colors;
+              
+              // Create connection lines between particles
+              this.connectionColor = 0xff5500; // Default connection color
+              // Store user customized colors
+              this.customColors = {
+                particle: "#ff6600",
+                connection: "#4488ff"
+              };
+              this.connectionsMaterial = new THREE.LineBasicMaterial({
+                color: this.connectionColor,
+                transparent: true,
+                opacity: this.settings.connectionOpacity * 0.5,
+                blending: THREE.AdditiveBlending
+              });
+              
+              this.connectionsGeometry = new THREE.BufferGeometry();
+              this.connectionsLines = new THREE.LineSegments(this.connectionsGeometry, this.connectionsMaterial);
+              this.scene.add(this.connectionsLines);
+              
+              // Setup animation
+              this.setupAnimation();
+              
+              // Handle window resize
+              window.addEventListener('resize', () => {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+              });
+              
+              // Mouse interaction
+              this.mouseX = 0;
+              this.mouseY = 0;
+              
+              window.addEventListener('mousemove', (e) => {
+                this.mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+                this.mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+              });
+              
+              debug("Three.js scene setup complete");
+              
+            } catch (error) {
+              debug(`Error setting up Three.js: ${error.message}`);
+              console.error('Error setting up Three.js:', error);
+              
+              // Update loading screen with error
+              const loadingScreen = document.getElementById('loadingScreen');
+              if (loadingScreen) {
+                loadingScreen.innerHTML = `
+                  <div style="color: #ff5555; padding: 20px; max-width: 80%; text-align: center;">
+                    <h3>Error during Three.js initialization</h3>
+                    <p>${error.message}</p>
+                    <p>Check console for details.</p>
+                    <button onclick="location.reload()">Reload</button>
+                  </div>
+                `;
+              }
+            }
+          },
+          
+          // Set up animation loop
+          setupAnimation() {
+            // Initialize the monochrome property if not already set
+            if (typeof this.monochrome === 'undefined') {
+              this.monochrome = false;
+            }
+            
+            let frameSkipCounter = 0;
+            let lastTime = performance.now();
+            let frameCount = 0;
+            let fpsUpdateTimer = 0;
+            let fps = 60;
+            
+            // Performance tracking
+            this.performanceStats = {
+              fps: 60,
+              particleCount: this.settings.particleCount,
+              connectionCount: 0,
+              lastFrameTime: 0
+            };
+            
+            // Throttle factor - increases when FPS drops
+            let throttleFactor = 1;
+            
+            const animate = () => {
+              requestAnimationFrame(animate);
+              
+              // Skip if not initialized
+              if (!this.particleSystem || !this.particleSystem.geometry) return;
+              
+              // Calculate delta time and FPS
+              const now = performance.now();
+              const deltaTime = (now - lastTime) / 1000;
+              lastTime = now;
+              
+              // Update FPS counter every second
+              frameCount++;
+              fpsUpdateTimer += deltaTime;
+              if (fpsUpdateTimer >= 1) {
+                fps = frameCount;
+                frameCount = 0;
+                fpsUpdateTimer = 0;
+                
+                // Update performance stats
+                this.performanceStats.fps = fps;
+                
+                // Adaptive throttling based on FPS
+                if (fps < 30 && throttleFactor < 3) {
+                  throttleFactor += 0.2;
+                } else if (fps > 50 && throttleFactor > 1) {
+                  throttleFactor -= 0.1;
+                }
+                throttleFactor = Math.max(1, Math.min(3, throttleFactor));
+              }
+              
+              // Update material properties
+              this.material.size = this.settings.particleSize;
+              this.connectionsMaterial.opacity = this.settings.connectionOpacity * 0.5;
+              
+              // Get position and color arrays
+              const positionArray = this.particleSystem.geometry.attributes.position.array;
+              const colorArray = this.particleSystem.geometry.attributes.color.array;
+              
+              // Animation time
+              const time = Date.now() * 0.001;
+              const pulse = (Math.sin(time * this.settings.pulseFrequency) + 1) / 2;
+              const bassPulse = (Math.sin(time * 0.75) + 1) / 2;
+              const midPulse = (Math.sin(time * 1.5) + 1) / 2;
+              const treblePulse = (Math.sin(time * 2.5) + 1) / 2;
+              
+              // Performance-adaptive particle processing
+              // Use different step sizes based on performance to handle larger particle counts smoothly
+              const particleStep = throttleFactor > 2 ? 2 : 1; // Skip particles when performance is low
+              
+              // Update each particle (with adaptive stepping)
+              for (let i = 0; i < this.settings.particleCount; i += particleStep) {
+                const i3 = i * 3;
+                if (i3 >= positionArray.length) continue;
+                
+                // Apply forces based on shape target
+                if (this.targetPositions && this.mode !== 'free' && i3 < this.targetPositions.length) {
+                  // Move toward target positions
+                  const tx = this.targetPositions[i3] - positionArray[i3];
+                  const ty = this.targetPositions[i3 + 1] - positionArray[i3 + 1];
+                  const tz = this.targetPositions[i3 + 2] - positionArray[i3 + 2];
+                  
+                  // Apply forces proportional to distance
+                  const transitionSpeed = this.settings.movementSpeed * 5;
+                  this.velocities[i3] += tx * transitionSpeed;
+                  this.velocities[i3 + 1] += ty * transitionSpeed;
+                  this.velocities[i3 + 2] += tz * transitionSpeed;
+                  
+                  // Add slight randomness for natural motion
+                  this.velocities[i3] += (Math.random() - 0.5) * 0.01;
+                  this.velocities[i3 + 1] += (Math.random() - 0.5) * 0.01;
+                  this.velocities[i3 + 2] += (Math.random() - 0.5) * 0.01;
+                } else {
+                  // Enhanced natural movement with quantum fluctuations and magnetic field effects
+                  const quantum = Math.random() * 0.02 - 0.01; // Quantum uncertainty principle
+                  const phase = time * 0.5 + i * 0.1;
+                  
+                  // Base wandering with improved fluid-like dynamics
+                  this.velocities[i3] += Math.sin(time + i) * this.settings.movementSpeed + Math.cos(phase * 1.3) * 0.002;
+                  this.velocities[i3 + 1] += Math.cos(time + i) * this.settings.movementSpeed + Math.sin(phase * 1.7) * 0.002;
+                  this.velocities[i3 + 2] += Math.sin(time * 1.1 + i) * this.settings.movementSpeed + Math.cos(phase * 2.1) * 0.002;
+                  
+                  // Add magnetic field effect (rotating force field)
+                  const magneticEffect = 0.003;
+                  this.velocities[i3] += positionArray[i3 + 1] * magneticEffect * Math.sin(time * 0.4);
+                  this.velocities[i3 + 1] -= positionArray[i3] * magneticEffect * Math.sin(time * 0.4);
+                  
+                  // Add quantum fluctuations
+                  this.velocities[i3] += quantum * 0.01;
+                  this.velocities[i3 + 1] += quantum * 0.01;
+                  this.velocities[i3 + 2] += quantum * 0.01;
+                }
+                
+                // Calculate pulse influence
+                const particleGroup = i % 3;
+                let pulseInfluence = 0;
+                
+                switch (particleGroup) {
+                  case 0: pulseInfluence = bassPulse; break;
+                  case 1: pulseInfluence = midPulse; break;
+                  case 2: pulseInfluence = treblePulse; break;
+                  default: pulseInfluence = pulse;
+                }
+                
+                // Enhanced pulsing effect with vorticity and fluid dynamics
+                const pulseDirection = new THREE.Vector3(
+                  positionArray[i3], 
+                  positionArray[i3 + 1], 
+                  positionArray[i3 + 2]
+                ).normalize();
+                
+                // Calculate radial distance for vorticity effect
+                const radialDist = Math.sqrt(
+                  positionArray[i3] * positionArray[i3] + 
+                  positionArray[i3 + 1] * positionArray[i3 + 1] + 
+                  positionArray[i3 + 2] * positionArray[i3 + 2]
+                ) / this.settings.sphereRadius;
+                
+                // Add vorticity (rotational swirl effect to particles)
+                const vorticityEffect = 0.004 * pulseInfluence * (1 - radialDist);
+                const rotAxis = new THREE.Vector3(
+                  Math.sin(time + i * 0.1),
+                  Math.cos(time + i * 0.1),
+                  Math.sin(time * 1.3 + i * 0.1)
+                ).normalize();
+                
+                // Cross product for rotation
+                const rx = pulseDirection.y * rotAxis.z - pulseDirection.z * rotAxis.y;
+                const ry = pulseDirection.z * rotAxis.x - pulseDirection.x * rotAxis.z;
+                const rz = pulseDirection.x * rotAxis.y - pulseDirection.y * rotAxis.x;
+                
+                // Enhanced pulse effect with vorticity
+                this.velocities[i3] += pulseDirection.x * pulseInfluence * this.settings.pulseStrength + rx * vorticityEffect;
+                this.velocities[i3 + 1] += pulseDirection.y * pulseInfluence * this.settings.pulseStrength + ry * vorticityEffect;
+                this.velocities[i3 + 2] += pulseDirection.z * pulseInfluence * this.settings.pulseStrength + rz * vorticityEffect;
+                
+                // Add fluid-inspired swirl effect at boundaries
+                if (radialDist > 0.8) {
+                    const boundaryEffect = (radialDist - 0.8) * 0.5;
+                    const swirl = Math.sin(time * 2 + i * 0.1) * boundaryEffect;
+                    this.velocities[i3] += pulseDirection.y * swirl;
+                    this.velocities[i3 + 1] -= pulseDirection.x * swirl;
+                }
+                
+                // Enhanced mouse interaction with electromagnetic field effects
+                const dx = positionArray[i3] - this.mouseX * 20;
+                const dy = positionArray[i3 + 1] - this.mouseY * 20;
+                const dz = positionArray[i3 + 2];
+                const distSq = dx * dx + dy * dy + dz * dz;
+                const dist = Math.sqrt(distSq);
+                
+                // Only apply force within interaction radius for performance
+                if (dist < this.settings.interactionRadius) {
+                  // Inverse square law for more realistic force falloff (like electromagnetism)
+                  const force = this.settings.interactionStrength * Math.pow(1 - dist / this.settings.interactionRadius, 2);
+                  
+                  // Basic direct attraction/repulsion
+                  this.velocities[i3] -= dx * force;
+                  this.velocities[i3 + 1] -= dy * force;
+                  this.velocities[i3 + 2] -= dz * force * 0.5; // Partial z-axis interaction
+                  
+                  // Add electromagnetic-like field effect with swirl
+                  const fieldStrength = force * 0.3;
+                  const fieldDirection = Math.sin(time * 0.8 + i * 0.05) > 0 ? 1 : -1; // Alternating field direction
+                  
+                  // Perpendicular velocity component (similar to magnetic field)
+                  this.velocities[i3] += dy * fieldStrength * fieldDirection;
+                  this.velocities[i3 + 1] -= dx * fieldStrength * fieldDirection;
+                  
+                  // Add subtle particle turbulence near mouse position
+                  if (dist < this.settings.interactionRadius * 0.5) {
+                    const turbulence = 0.02 * (1 - dist / (this.settings.interactionRadius * 0.5));
+                    this.velocities[i3] += (Math.random() - 0.5) * turbulence;
+                    this.velocities[i3 + 1] += (Math.random() - 0.5) * turbulence;
+                    this.velocities[i3 + 2] += (Math.random() - 0.5) * turbulence;
+                  }
+                }
+                
+                // Enhanced containment with physically accurate boundary behavior
+                const radius = Math.sqrt(
+                  positionArray[i3] * positionArray[i3] +
+                  positionArray[i3 + 1] * positionArray[i3 + 1] +
+                  positionArray[i3 + 2] * positionArray[i3 + 2]
+                );
+                
+                // Calculate normalized position for direction
+                const nx = positionArray[i3] / (radius || 1);
+                const ny = positionArray[i3 + 1] / (radius || 1);
+                const nz = positionArray[i3 + 2] / (radius || 1);
+                
+                // Containment force with more accurate physical model
+                if (radius > this.settings.sphereRadius) {
+                  // Non-linear force that increases sharply at boundary (exponential falloff)
+                  const excessDist = radius - this.settings.sphereRadius;
+                  const forceMagnitude = this.settings.containmentForce * Math.pow(excessDist, 1.5);
+                  
+                  // Apply containment force
+                  this.velocities[i3] -= nx * forceMagnitude;
+                  this.velocities[i3 + 1] -= ny * forceMagnitude;
+                  this.velocities[i3 + 2] -= nz * forceMagnitude;
+                  
+                  // Add damping at boundary to simulate energy loss in collisions
+                  const boundaryDamping = 0.7;
+                  this.velocities[i3] *= boundaryDamping;
+                  this.velocities[i3 + 1] *= boundaryDamping;
+                  this.velocities[i3 + 2] *= boundaryDamping;
+                  
+                  // Tangential component for slight sideways deflection at boundary
+                  // Creates surface flow effect along containment sphere
+                  const tangentialFactor = 0.02;
+                  const tangentialAngle = Math.atan2(ny, nx) + (time * 0.2);
+                  const tx = Math.cos(tangentialAngle);
+                  const ty = Math.sin(tangentialAngle);
+                  
+                  this.velocities[i3] += tx * tangentialFactor * excessDist;
+                  this.velocities[i3 + 1] += ty * tangentialFactor * excessDist;
+                } 
+                
+                // Add subtle inward gravity-like force even within boundary
+                else if (radius > this.settings.sphereRadius * 0.5) {
+                  const gravityFactor = 0.0005;
+                  const gravitationalPull = gravityFactor * radius / this.settings.sphereRadius;
+                  
+                  this.velocities[i3] -= nx * gravitationalPull;
+                  this.velocities[i3 + 1] -= ny * gravitationalPull;
+                  this.velocities[i3 + 2] -= nz * gravitationalPull;
+                }
+                
+                // Apply damping
+                this.velocities[i3] *= this.settings.velocityDamping;
+                this.velocities[i3 + 1] *= this.settings.velocityDamping;
+                this.velocities[i3 + 2] *= this.settings.velocityDamping;
+                
+                // Update positions
+                positionArray[i3] += this.velocities[i3];
+                positionArray[i3 + 1] += this.velocities[i3 + 1];
+                positionArray[i3 + 2] += this.velocities[i3 + 2];
+                
+                // Update colors based on mode
+                if (i3 < colorArray.length) {
+                  // Apply monochrome first if enabled (will apply to any color mode)
+                  const applyMonochrome = this.monochrome;
+                  
+                  if (this.colorMode === 'spectrum') {
+                    // Get settings with defaults
+                    const settings = this.colorSettings?.spectrum || { saturation: 0.8, brightness: 0.9, speed: 1.0 };
+                    
+                    // Improved position-to-color mapping with multiple factors
+                    // This creates a more dynamic, varied spectrum
+                    const rad = Math.sqrt(
+                      (positionArray[i3]/this.settings.sphereRadius) * (positionArray[i3]/this.settings.sphereRadius) + 
+                      (positionArray[i3+1]/this.settings.sphereRadius) * (positionArray[i3+1]/this.settings.sphereRadius) + 
+                      (positionArray[i3+2]/this.settings.sphereRadius) * (positionArray[i3+2]/this.settings.sphereRadius)
+                    );
+                    
+                    // Height now varies with time for subtle animation
+                    const timeOffset = time * 0.2 * settings.speed;
+                    const angle = Math.atan2(positionArray[i3], positionArray[i3+2]);
+                    const height = ((positionArray[i3 + 1] / this.settings.sphereRadius) + 1) / 2 + 
+                                  Math.sin(angle * 3 + timeOffset) * 0.05;
+                    
+                    // Improved color mapping with better gradients
+                    let r, g, b;
+                    
+                    // Rainbow spectrum with smoother transitions
+                    const segment = Math.floor(height * 5);  // 0-4
+                    const t = (height * 5) % 1;  // 0-1 within segment
+                    
+                    switch(segment) {
+                      case 0: // Blue to cyan
+                        r = 0;
+                        g = t;
+                        b = 1;
+                        break;
+                      case 1: // Cyan to green
+                        r = 0;
+                        g = 1;
+                        b = 1 - t;
+                        break;
+                      case 2: // Green to yellow
+                        r = t;
+                        g = 1;
+                        b = 0;
+                        break;
+                      case 3: // Yellow to red
+                        r = 1;
+                        g = 1 - t;
+                        b = 0;
+                        break;
+                      case 4: // Red to purple
+                      default:
+                        r = 1;
+                        g = 0;
+                        b = t;
+                        break;
+                    }
+                    
+                    // Apply saturation and brightness adjustments
+                    const brightness = settings.brightness;
+                    const saturation = settings.saturation;
+                    
+                    // Mix with white based on saturation
+                    r = r * saturation + (1 - saturation);
+                    g = g * saturation + (1 - saturation);
+                    b = b * saturation + (1 - saturation);
+                    
+                    // Apply brightness
+                    r = r * brightness;
+                    g = g * brightness;
+                    b = b * brightness;
+                    
+                    colorArray[i3] = r;
+                    colorArray[i3 + 1] = g;
+                    colorArray[i3 + 2] = b;
+                  } else if (this.colorMode === 'pulse') {
+                    // Enhanced pulse-based colors with more harmonics
+                    const settings = this.colorSettings?.pulse || { intensity: 0.8, speed: 1.0, harmony: 0.7 };
+                    
+                    // Use more harmonics for pulse mode
+                    const adjustedTime = time * settings.speed;
+                    const pulse1 = (Math.sin(adjustedTime * 0.75) + 1) / 2;
+                    const pulse2 = (Math.sin(adjustedTime * 1.5) + 1) / 2;
+                    const pulse3 = (Math.sin(adjustedTime * 2.5) + 1) / 2;
+                    const pulseSlow = (Math.sin(adjustedTime * 0.3) + 1) / 2;
+                    
+                    // Calculate particle group with more variety - up to 5 groups now
+                    const particleGroup = (i + Math.floor(i / 10)) % 5;
+                    
+                    // Distance from center affects color intensity
+                    const dist = Math.sqrt(
+                      positionArray[i3] * positionArray[i3] + 
+                      positionArray[i3+1] * positionArray[i3+1] + 
+                      positionArray[i3+2] * positionArray[i3+2]
+                    ) / this.settings.sphereRadius;
+                    
+                    // Harmony factor blends colors between groups
+                    const harmony = settings.harmony;
+                    const intensity = settings.intensity;
+                    
+                    switch (particleGroup) {
+                      case 0: // Red-orange pulsing (bass)
+                        colorArray[i3] = 0.8 + pulse1 * 0.2 * intensity;
+                        colorArray[i3 + 1] = 0.2 * pulse2 * intensity + 0.1;
+                        colorArray[i3 + 2] = 0.1 * pulse3 * intensity * dist;
+                        break;
+                      case 1: // Green-yellow pulsing (mid)
+                        colorArray[i3] = 0.4 * pulse2 * intensity + 0.2 * harmony;
+                        colorArray[i3 + 1] = 0.7 + pulseSlow * 0.3 * intensity;
+                        colorArray[i3 + 2] = 0.1 * pulse1 * intensity * dist;
+                        break;
+                      case 2: // Blue-cyan pulsing (treble)
+                        colorArray[i3] = 0.05 * pulse3 * intensity + 0.1 * harmony;
+                        colorArray[i3 + 1] = 0.3 * pulse1 * intensity + 0.2 * harmony;
+                        colorArray[i3 + 2] = 0.7 + pulse2 * 0.3 * intensity;
+                        break;
+                      case 3: // Purple pulsing (spatial accents)
+                        colorArray[i3] = 0.5 + pulse2 * 0.2 * intensity;
+                        colorArray[i3 + 1] = 0.1 * pulse1 * intensity;
+                        colorArray[i3 + 2] = 0.6 + pulse3 * 0.2 * intensity;
+                        break;
+                      case 4: // White-gold pulsing (high frequency)
+                        colorArray[i3] = 0.7 + pulseSlow * 0.3 * intensity;
+                        colorArray[i3 + 1] = 0.6 + pulse1 * 0.3 * intensity;
+                        colorArray[i3 + 2] = 0.3 + pulse2 * 0.3 * intensity;
+                        break;
+                      default:
+                        break;
+                    }
+                  } else if (this.colorMode === 'quantum') {
+                    // Enhanced quantum mode with more physics-inspired colors
+                    const settings = this.colorSettings?.quantum || { entropy: 0.7, coherence: 0.5, intensity: 0.8 };
+                    
+                    // Quantum parameters - time-based phase with position-dependent offset
+                    const phase = (positionArray[i3] + positionArray[i3+1] + positionArray[i3+2]) * 0.03 + time * 0.5;
+                    
+                    // Quantum probability density function (simplified)
+                    // This creates interference-like patterns
+                    const waveFn1 = Math.sin(phase) * Math.sin(phase * 1.3);
+                    const waveFn2 = Math.cos(phase * 0.7) * Math.sin(phase * 0.9);
+                    const interference = waveFn1 * waveFn2;
+                    
+                    // Discretization effect based on entropy setting (quantum jumps)
+                    const discretization = settings.entropy;
+                    const quantumJump = Math.floor(interference * 5 * discretization) / (5 * discretization);
+                    
+                    // Blend between continuous and discrete behavior based on coherence
+                    const coherence = settings.coherence;
+                    const blendedWave = interference * (1 - coherence) + quantumJump * coherence;
+                    
+                    // Map to colors using quantum-inspired palette (blue/purple dominant)
+                    const intensity = settings.intensity;
+                    
+                    // Blue-dominant quantum palette
+                    colorArray[i3] = 0.3 + (blendedWave * 0.4 + 0.3) * intensity; // Red
+                    colorArray[i3 + 1] = 0.2 + (blendedWave * 0.5 + 0.2) * intensity; // Green 
+                    colorArray[i3 + 2] = 0.6 + (blendedWave * 0.4) * intensity; // Blue (higher base)
+                  
+                  } else if (this.colorMode === 'custom') {
+                    // Enhanced custom color mode with two-color blending
+                    try {
+                      const settings = this.colorSettings?.custom || {};
+                      
+                      // Get primary and secondary colors
+                      const primaryColor = new THREE.Color(settings.primaryColor || this.customParticleColor || '#ff6600');
+                      const secondaryColor = new THREE.Color(settings.secondaryColor || '#0066ff');
+                      
+                      // Position-based transition between colors
+                      const blendFactor = (Math.sin(
+                        positionArray[i3] * 0.2 + 
+                        positionArray[i3+1] * 0.3 + 
+                        positionArray[i3+2] * 0.1 + 
+                        time * 0.2
+                      ) + 1) / 2;
+                      
+                      // Blend colors
+                      colorArray[i3] = primaryColor.r * (1 - blendFactor) + secondaryColor.r * blendFactor;
+                      colorArray[i3 + 1] = primaryColor.g * (1 - blendFactor) + secondaryColor.g * blendFactor;
+                      colorArray[i3 + 2] = primaryColor.b * (1 - blendFactor) + secondaryColor.b * blendFactor;
+                    } catch (e) {
+                      // Fallback to default color if there's an error
+                      colorArray[i3] = 1.0;
+                      colorArray[i3 + 1] = 0.4;
+                      colorArray[i3 + 2] = 0.0;
+                    }
+                  } else {
+                    // Enhanced default fire color scheme with improved depth cues
+                    const radialGradient = 1.0 - Math.sqrt(
+                      positionArray[i3]*positionArray[i3] + 
+                      positionArray[i3+1]*positionArray[i3+1] + 
+                      positionArray[i3+2]*positionArray[i3+2]
+                    ) / this.settings.sphereRadius;
+                    
+                    // Time-varying component for subtle animation
+                    const timeComponent = Math.sin(time * 0.5 + 
+                      positionArray[i3] * 0.1 + 
+                      positionArray[i3+1] * 0.2 + 
+                      positionArray[i3+2] * 0.15
+                    ) * 0.05;
+                    
+                    // Fire gradient (core to edge)
+                    colorArray[i3] = 0.8 + radialGradient * 0.2 + timeComponent; // More red at center
+                    colorArray[i3 + 1] = 0.3 + radialGradient * 0.3 - timeComponent; // Less green at edges
+                    colorArray[i3 + 2] = 0.05 + (1.0 - radialGradient) * 0.1; // Slight blue at edges
+                  }
+                  
+                  // Apply monochrome filter if enabled
+                  if (applyMonochrome) {
+                    const r = colorArray[i3];
+                    const g = colorArray[i3 + 1];
+                    const b = colorArray[i3 + 2];
+                    
+                    // Convert to grayscale using perceptual luminance
+                    const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+                    
+                    // Apply slightly blue-tinted grayscale for better visuals
+                    colorArray[i3] = luminance * 0.9;       // R
+                    colorArray[i3 + 1] = luminance;         // G
+                    colorArray[i3 + 2] = luminance * 1.1;   // B
+                  }
+                }
+              }
+              
+              // Adaptive connection updates based on performance
+              frameSkipCounter++;
+              
+              // Adjust skip rate based on FPS for adaptive performance
+              const skipRate = fps < 30 ? 5 : (fps < 45 ? 4 : 3);
+              
+              // Update connections less frequently for better performance
+              if (frameSkipCounter >= skipRate) {
+                frameSkipCounter = 0;
+                this.updateConnections();
+              }
+              
+              // Update geometry attributes
+              this.particleSystem.geometry.attributes.position.needsUpdate = true;
+              this.particleSystem.geometry.attributes.color.needsUpdate = true;
+              
+              // Track frame timing for performance optimization
+              const frameEnd = performance.now();
+              this.performanceStats.lastFrameTime = frameEnd - now;
+              
+              // Render the scene
+              this.renderer.render(this.scene, this.camera);
+              
+              // Update debug info with performance metrics if debug panel is visible
+              if (frameCount % 30 === 0) {
+                const debugPanel = document.getElementById('debugPanel');
+                const debugInfo = document.getElementById('debugInfo');
+                if (debugPanel && debugInfo && debugPanel.style.display !== 'none') {
+                  debugInfo.innerHTML = `
+                    <div>FPS: ${Math.round(fps)}</div>
+                    <div>Particles: ${this.settings.particleCount}</div>
+                    <div>Connections: ${this.performanceStats.connectionCount}</div>
+                    <div>Frame Time: ${Math.round(this.performanceStats.lastFrameTime)}ms</div>
+                    <div>Mode: ${this.mode}</div>
+                    <div>Color: ${this.colorMode}</div>
+                  `;
+                }
+              }
+            };
+            
+            // Start animation
+            animate();
+            debug('Animation loop started');
+          },
+          
+          // Update particle connections
+          updateConnections() {
+            try {
+              const positionArray = this.particleSystem.geometry.attributes.position.array;
+              
+              // Update connections with optimized spatial partitioning
+              const linePositions = [];
+              const lineColors = []; // Add colors for dynamic connections
+              const maxConnections = 20000; // Increased max connections
+              let connectionCount = 0;
+              
+              // Dynamic connection distance based on particle count for better visuals
+              const dynamicConnectionDistance = this.settings.connectionDistance * 
+                Math.pow(1000 / Math.max(500, this.settings.particleCount), 0.3);
+              
+              // Time-based value for color effects
+              const time = Date.now() * 0.001;
+              
+              // Skip every n particles depending on mode (performance optimization)
+              const skipFactor = this.mode === 'free' ? 3 : 1;
+              
+              // Improved connection calculation with early skipping for better performance
+              for (let i = 0; i < this.settings.particleCount; i += skipFactor) {
+                const i3 = i * 3;
+                if (i3 >= positionArray.length) break;
+                
+                const xi = positionArray[i3];
+                const yi = positionArray[i3 + 1];
+                const zi = positionArray[i3 + 2];
+                
+                // Get radius from center for distance-based optimizations
+                const radiusSq = xi*xi + yi*yi + zi*zi;
+                
+                // Skip some particles far from center for performance
+                if (this.mode === 'free' && radiusSq > this.settings.sphereRadius * this.settings.sphereRadius * 0.8 && Math.random() > 0.5) {
+                  continue;
+                }
+                
+                // Optimized step size based on mode and position
+                const step = (this.mode === 'free') ? 3 : 2;
+                
+                for (let j = i + step; j < this.settings.particleCount; j += step) {
+                  if (connectionCount >= maxConnections) break;
+                  
+                  const j3 = j * 3;
+                  if (j3 >= positionArray.length) break;
+                  
+                  const xj = positionArray[j3];
+                  const yj = positionArray[j3 + 1];
+                  const zj = positionArray[j3 + 2];
+                  
+                  // Fast distance check using squared distance
+                  const dx = xi - xj;
+                  const dy = yi - yj;
+                  const dz = zi - zj;
+                  const distSq = dx*dx + dy*dy + dz*dz;
+                  
+                  // Dynamic connection distance based on mode
+                  const connectionDistSq = this.mode === 'free' ? 
+                    this.settings.connectionDistance * this.settings.connectionDistance * 0.8 :
+                    this.settings.connectionDistance * this.settings.connectionDistance;
+                  
+                  if (distSq < connectionDistSq) {
+                    // Calculate actual distance for strength calculation
+                    const dist = Math.sqrt(distSq);
+                    const strength = 1.0 - dist / this.settings.connectionDistance;
+                    
+                    // Add positions to line segments
+                    linePositions.push(xi, yi, zi, xj, yj, zj);
+                    
+                    // Add colors based on distance and position for visual effect
+                    // This adds a dynamic, flowing color effect to connections
+                    const time = Date.now() * 0.001;
+                    const colorPhase = (xi + yi + zi) * 0.005 + time * 0.2;
+                    
+                    // Base color (orange-ish with variations)
+                    const r = 0.8 + Math.sin(colorPhase) * 0.2 * strength;
+                    const g = 0.3 + Math.cos(colorPhase * 1.3) * 0.2 * strength;
+                    const b = 0.1 + Math.sin(colorPhase * 0.7) * 0.1 * strength;
+                    
+                    // Add gradient-like effect by using different colors for start/end points
+                    lineColors.push(r, g, b, r*0.7, g*0.7, b*0.7);
+                    
+                    connectionCount++;
+                  }
+                }
+              }
+              
+              // Update performance stats
+              this.performanceStats.connectionCount = connectionCount;
+              
+              // Fast path if no connections (avoid unnecessary buffer updates)
+              if (connectionCount === 0) {
+                this.connectionsGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(0), 3));
+                return;
+              }
+              
+              // Update connection lines geometry
+              const connectionsArray = new Float32Array(linePositions);
+              this.connectionsGeometry.setAttribute('position', new THREE.BufferAttribute(connectionsArray, 3));
+              
+              // Add color information to the connections
+              if (lineColors.length > 0) {
+                const colorsArray = new Float32Array(lineColors);
+                
+                // Apply monochrome filter if enabled
+                if (this.monochrome) {
+                  for (let i = 0; i < colorsArray.length; i += 3) {
+                    const r = colorsArray[i];
+                    const g = colorsArray[i + 1];
+                    const b = colorsArray[i + 2];
+                    
+                    // Convert to grayscale with slight blue tint for better aesthetics
+                    const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+                    colorsArray[i] = luminance * 0.8;       // Red (reduced)
+                    colorsArray[i + 1] = luminance * 0.9;   // Green (reduced)
+                    colorsArray[i + 2] = luminance * 1.2;   // Blue (enhanced)
+                  }
+                }
+                
+                this.connectionsGeometry.setAttribute('color', new THREE.BufferAttribute(colorsArray, 3));
+                
+                // Enable vertex colors in the material
+                if (!this.connectionsMaterial.vertexColors) {
+                  this.connectionsMaterial.vertexColors = true;
+                  this.connectionsMaterial.needsUpdate = true;
+                }
+              }
+              
+            } catch (error) {
+              debug(`Error updating connections: ${error.message}`);
+              console.error('Error updating connections:', error);
+            }
+          },
+          
+          // Generate target positions for different shape modes
+          updateTargetPositions() {
+            const count = this.settings.particleCount;
+            const radius = this.settings.sphereRadius;
+            
+            switch (this.mode) {
+              case 'sphere': {
+                this.targetPositions = new Float32Array(count * 3);
+                
+                // Use Fibonacci sphere algorithm for more uniform distribution
+                const goldenRatio = (1 + Math.sqrt(5)) / 2;
+                
+                for (let i = 0; i < count; i++) {
+                  const i3 = i * 3;
+                  
+                  // Fibonacci lattice for uniform sphere distribution
+                  const y = 1 - (i / (count - 1)) * 2;  // -1 to 1
+                  const radius1 = Math.sqrt(1 - y * y);  // radius at y
+                  
+                  const theta = 2 * Math.PI * i / goldenRatio;  // golden angle increment
+                  
+                  this.targetPositions[i3] = radius * radius1 * Math.cos(theta);
+                  this.targetPositions[i3 + 1] = radius * y;
+                  this.targetPositions[i3 + 2] = radius * radius1 * Math.sin(theta);
+                }
+                break;
+              }
+              case 'ring': {
+                this.targetPositions = new Float32Array(count * 3);
+                for (let i = 0; i < count; i++) {
+                  const i3 = i * 3;
+                  const angle = (i / count) * Math.PI * 2;
+                  
+                  // Add slight variation for more interesting ring
+                  const ringRadius = radius * (0.95 + Math.sin(angle * 5) * 0.05);
+                  const height = Math.sin(angle * 3) * radius * 0.1;
+                  
+                  this.targetPositions[i3] = ringRadius * Math.cos(angle);
+                  this.targetPositions[i3 + 1] = ringRadius * Math.sin(angle);
+                  this.targetPositions[i3 + 2] = height;
+                }
+                break;
+              }
+              case 'donut': {
+                this.targetPositions = new Float32Array(count * 3);
+                const torusRadius = radius * 0.7;
+                const tubeRadius = radius * 0.3;
+                
+                // Calculate divisions for a more uniform distribution
+                const majorPoints = Math.floor(Math.sqrt(count / 2));
+                const minorPoints = Math.floor(count / majorPoints);
+                
+                for (let i = 0; i < count; i++) {
+                  const i3 = i * 3;
+                  
+                  // Distribute along major and minor circles more evenly
+                  const majorIdx = Math.floor(i / minorPoints);
+                  const minorIdx = i % minorPoints;
+                  
+                  const u = (majorIdx / majorPoints) * Math.PI * 2;
+                  const v = (minorIdx / minorPoints) * Math.PI * 2;
+                  
+                  // Add slight variations for a more organic shape
+                  const variation = Math.sin(u * 5 + v * 3) * 0.1;
+                  const adjustedTubeRadius = tubeRadius * (1 + variation);
+                  
+                  this.targetPositions[i3] = (torusRadius + adjustedTubeRadius * Math.cos(v)) * Math.cos(u);
+                  this.targetPositions[i3 + 1] = (torusRadius + adjustedTubeRadius * Math.cos(v)) * Math.sin(u);
+                  this.targetPositions[i3 + 2] = adjustedTubeRadius * Math.sin(v);
+                }
+                break;
+              }
+              case 'entanglement': {
+                // New quantum-inspired entanglement pattern
+                this.targetPositions = new Float32Array(count * 3);
+                
+                for (let i = 0; i < count; i++) {
+                  const i3 = i * 3;
+                  const t = (i / count) * Math.PI * 6; // Parameter along curve
+                  
+                  // Create interlocking spirals with particle pairs
+                  const pairIndex = Math.floor(i / 2);
+                  const isPrimary = i % 2 === 0;
+                  
+                  // Base spiral parameters
+                  const spiralRadius = radius * 0.8 * Math.exp(-t * 0.05) * Math.sin(t * 0.5);
+                  const spiralHeight = radius * Math.cos(t) * 0.6;
+                  
+                  if (isPrimary) {
+                    // Primary particle
+                    this.targetPositions[i3] = spiralRadius * Math.cos(t);
+                    this.targetPositions[i3 + 1] = spiralHeight;
+                    this.targetPositions[i3 + 2] = spiralRadius * Math.sin(t);
+                  } else {
+                    // Entangled particle (mirrored position with small offset)
+                    this.targetPositions[i3] = -spiralRadius * Math.cos(t) * 0.8;
+                    this.targetPositions[i3 + 1] = -spiralHeight * 0.8;
+                    this.targetPositions[i3 + 2] = -spiralRadius * Math.sin(t) * 0.8;
+                  }
+                }
+                break;
+              }
+              case 'wave': {
+                // Quantum wave pattern
+                this.targetPositions = new Float32Array(count * 3);
+                
+                // Wave parameters
+                const waveAmplitude = radius * 0.5;
+                const frequency = 2;
+                
+                for (let i = 0; i < count; i++) {
+                  const i3 = i * 3;
+                  const phase = (i / count) * Math.PI * 8;
+                  
+                  // Create wave pattern with secondary waves
+                  const x = (i / count - 0.5) * radius * 2;
+                  const primaryWave = Math.sin(phase * frequency) * waveAmplitude;
+                  const secondaryWave = Math.sin(phase * frequency * 3) * waveAmplitude * 0.3;
+                  
+                  // Combine waves for complex pattern
+                  this.targetPositions[i3] = x;
+                  this.targetPositions[i3 + 1] = primaryWave + secondaryWave;
+                  this.targetPositions[i3 + 2] = Math.cos(phase) * waveAmplitude * 0.5;
+                }
+                break;
+              }
+              case 'classicWave': {
+                // Classic simple wave pattern from earlier versions
+                this.targetPositions = new Float32Array(count * 3);
+                
+                // Classic wave parameters
+                const amplitude = radius * 0.4;
+                const frequency = 1.5;
+                const spreadFactor = 0.8;
+                
+                for (let i = 0; i < count; i++) {
+                  const i3 = i * 3;
+                  const t = (i / count) * Math.PI * 8;
+                  
+                  // Simple sine wave on a flatter plane
+                  this.targetPositions[i3] = (i / count - 0.5) * radius * 2 * spreadFactor; // X position
+                  this.targetPositions[i3 + 1] = Math.sin(t * frequency) * amplitude; // Y position (height)
+                  this.targetPositions[i3 + 2] = Math.cos(t * 0.5) * amplitude * 0.2; // Z position (slight depth)
+                }
+                break;
+              }
+              case 'vortex': {
+                // Vortex spiral pattern
+                this.targetPositions = new Float32Array(count * 3);
+                
+                // Vortex parameters
+                const vortexRadius = radius * 0.8;
+                const vortexHeight = radius * 1.2;
+                
+                for (let i = 0; i < count; i++) {
+                  const i3 = i * 3;
+                  const ratio = i / count;
+                  const angle = ratio * Math.PI * 10;
+                  const r = vortexRadius * (1 - ratio * 0.5);
+                  const y = (ratio - 0.5) * vortexHeight;
+                  
+                  // Spiral path with decreasing radius
+                  this.targetPositions[i3] = Math.cos(angle) * r;
+                  this.targetPositions[i3 + 1] = y;
+                  this.targetPositions[i3 + 2] = Math.sin(angle) * r;
+                }
+                break;
+              }
+              case 'grid': {
+                // 3D Grid pattern
+                this.targetPositions = new Float32Array(count * 3);
+                
+                // Grid parameters
+                const gridSize = Math.ceil(Math.cbrt(count));
+                const spacing = radius / (gridSize * 0.8);
+                
+                for (let i = 0; i < count; i++) {
+                  const i3 = i * 3;
+                  
+                  // Calculate 3D grid coordinates
+                  const x = Math.floor(i / (gridSize * gridSize)) - Math.floor(gridSize / 2);
+                  const y = Math.floor((i % (gridSize * gridSize)) / gridSize) - Math.floor(gridSize / 2);
+                  const z = (i % gridSize) - Math.floor(gridSize / 2);
+                  
+                  // Position particles in grid
+                  this.targetPositions[i3] = x * spacing;
+                  this.targetPositions[i3 + 1] = y * spacing;
+                  this.targetPositions[i3 + 2] = z * spacing;
+                }
+                break;
+              }
+              case 'free':
+              default:
+                this.targetPositions = null;
+                break;
+            }
+            
+            debug(`Target positions updated for mode: ${this.mode}`);
+          },
+          
+          // Command handlers that the chat can call
+          setMode(mode) {
+            this.mode = mode;
+            debug(`Mode changed to: ${mode}`);
+            this.updateTargetPositions();
+            return true;
+          },
+          
+          setColorMode(colorMode, customSettings) {
+            this.colorMode = colorMode;
+            
+            // Update advanced color settings if provided
+            if (customSettings) {
+              this.colorSettings = { ...this.colorSettings, ...customSettings };
+            }
+            
+            // Initialize color settings if needed
+            if (!this.colorSettings) {
+              this.colorSettings = {
+                // Default color palette
+                primary: { r: 1.0, g: 0.4, b: 0.0 },   // Fiery orange
+                secondary: { r: 0.2, g: 0.4, b: 1.0 }, // Cool blue
+                tertiary: { r: 0.8, g: 0.8, b: 0.1 },  // Yellow
+                
+                // Color mode specific settings
+                spectrum: {
+                  saturation: 0.8,
+                  brightness: 0.9,
+                  speed: 1.0
+                },
+                pulse: {
+                  intensity: 0.8,
+                  speed: 1.0,
+                  harmony: 0.7
+                },
+                quantum: {
+                  entropy: 0.7,
+                  coherence: 0.5,
+                  intensity: 0.8
+                },
+                custom: {
+                  primaryColor: "#ff6600",
+                  secondaryColor: "#0066ff",
+                  blendMode: "normal"  // normal, additive, multiply
+                }
+              };
+            }
+            
+            // Apply color mode specific updates to the material
+            switch (colorMode) {
+              case 'custom':
+                if (this.customParticleColor) {
+                  const color = new THREE.Color(this.customParticleColor);
+                  this.colorSettings.custom.primaryColor = '#' + color.getHexString();
+                }
+                break;
+                
+              case 'quantum':
+                // Update the quantum material settings
+                if (this.material) {
+                  this.material.size = this.settings.particleSize * 1.2;  // Slightly larger particles
+                }
+                break;
+            }
+            
+            debug(`Color mode changed to: ${colorMode} with settings: ${JSON.stringify(this.colorSettings[colorMode] || {})}`);
+            return true;
+          },
+          
+          // Set a custom connection color
+          setConnectionColor(colorHex) {
+            if (!colorHex.startsWith('#')) {
+              colorHex = '#' + colorHex;
+            }
+            
+            this.customColors.connection = colorHex;
+            
+            // Convert hex to integer for THREE.js
+            const color = new THREE.Color(colorHex);
+            this.connectionColor = color.getHex();
+            
+            // Update connection material if it exists
+            if (this.connectionsMaterial) {
+              this.connectionsMaterial.color.set(this.connectionColor);
+              this.connectionsMaterial.needsUpdate = true;
+            }
+            
+            debug(`Custom connection color set to: ${colorHex}`);
+            return true;
+          },
+          
+          // Set custom colors for both particles and connections
+          setCustomColors(particleColorHex, connectionColorHex) {
+            // Set particle color
+            if (particleColorHex) {
+              this.setCustomColor(particleColorHex);
+            }
+            
+            // Set connection color
+            if (connectionColorHex) {
+              this.setConnectionColor(connectionColorHex);
+            }
+            
+            return true;
+          },
+          
+          setParticleCount(count) {
+            // Limit to a reasonable range
+            count = Math.max(100, Math.min(5000, count));
+            this.settings.particleCount = count;
+            debug(`Particle count set to: ${count}`);
+            
+            // Reinitialize particles for significant count changes
+            if (Math.abs(this.particleSystem.geometry.attributes.position.array.length / 3 - count) > 100) {
+              debug("Significant particle count change - reinitializing");
+              
+              // Store current mode and color mode
+              const currentMode = this.mode;
+              const currentColorMode = this.colorMode;
+              
+              // Cleanup existing particles
+              this.scene.remove(this.particleSystem);
+              this.scene.remove(this.connectionsLines);
+              
+              // Recreate with new count
+              this.setupThreeJS();
+              
+              // Restore modes
+              this.mode = currentMode;
+              this.colorMode = currentColorMode;
+              this.updateTargetPositions();
+            } else {
+              // Just update target positions for minor changes
+              this.updateTargetPositions();
+            }
+            
+            return true;
+          },
+          
+          setSpeed(speed) {
+            let speedFactor = 1.0;
+            
+            if (speed === 'fast') {
+              speedFactor = 2.0;
+              debug("Speed set to fast");
+            } else if (speed === 'slow') {
+              speedFactor = 0.5;
+              debug("Speed set to slow");
+            } else {
+              debug("Speed set to normal");
+            }
+            
+            this.settings.movementSpeed = 0.01 * speedFactor;
+            this.settings.pulseFrequency = 1.5 * speedFactor;
+            
+            return true;
+          }
+        };
+        
+        return simulatorAdapter.init();
+        } catch (error) {
+          console.error("Simulator initialization error:", error);
+          updateLoadingStatus("Error: " + error.message);
+          
+          // Display a more user-friendly error message
+          const loadingScreen = document.getElementById('loadingScreen');
+          if (loadingScreen) {
+            loadingScreen.innerHTML = '<div style="color: #ff5555; padding: 20px; max-width: 80%; text-align: center;">' +
+              '<h3>Simulation Error</h3>' +
+              '<p>' + error.message + '</p>' +
+              '<p>Try using a different browser or updating your graphics drivers.</p>' +
+              '<button onclick="location.reload()">Reload</button>' +
+              '</div>';
+          }
+          
+          return null;
+        }
+      }
+      
+      // Create UI sliders with tab organization
+      function createSliders() {
+        debug("Creating UI sliders");
+        const sliderConfigs = {
+          particles: [
+            { id: 'particleCount', label: 'Particle Count', min: 500, max: 8000, step: 100, reinit: true },
+            { id: 'particleSize', label: 'Particle Size', min: 0.1, max: 0.8, step: 0.01 },
+            { id: 'sphereRadius', label: 'Sphere Radius', min: 5, max: 30, step: 1 }
+          ],
+          interactions: [
+            { id: 'connectionDistance', label: 'Connection Distance', min: 1, max: 10, step: 0.5 },
+            { id: 'connectionOpacity', label: 'Connection Opacity', min: 0.1, max: 1, step: 0.05 },
+            { id: 'maxConnections', label: 'Max Connections', min: 5000, max: 50000, step: 1000 },
+            { id: 'interactionStrength', label: 'Interaction Strength', min: 0.01, max: 0.5, step: 0.01 },
+            { id: 'interactionRadius', label: 'Interaction Radius', min: 5, max: 20, step: 1 }
+          ],
+          effects: [
+            { id: 'movementSpeed', label: 'Movement Speed', min: 0.001, max: 0.05, step: 0.001 },
+            { id: 'containmentForce', label: 'Containment Force', min: 0.01, max: 0.2, step: 0.01 },
+            { id: 'velocityDamping', label: 'Velocity Damping', min: 0.8, max: 0.99, step: 0.01 },
+            { id: 'pulseFrequency', label: 'Pulse Frequency', min: 0.1, max: 3, step: 0.1 },
+            { id: 'pulseStrength', label: 'Pulse Strength', min: 0.01, max: 0.3, step: 0.01 },
+            { id: 'quantumFluctuation', label: 'Quantum Fluctuation', min: 0.01, max: 0.2, step: 0.01 }
+          ]
+        };
+        
+        // Create sliders for each tab
+        for (const [tabName, sliders] of Object.entries(sliderConfigs)) {
+          const tabContent = document.getElementById(`${tabName}-tab`);
+          if (!tabContent) continue;
+          
+          sliders.forEach(slider => {
+            const { id, label, min, max, step, reinit } = slider;
+            const value = simulator?.settings[id] !== undefined ? simulator.settings[id] : 0;
+            
+            // Create slider container
+            const sliderContainer = document.createElement('div');
+            sliderContainer.className = 'slider-container';
+            sliderContainer.id = `${id}Container`;
+            
+            // Add header with label and value display
+            const sliderHeader = document.createElement('div');
+            sliderHeader.className = 'slider-header';
+            
+            const sliderLabel = document.createElement('label');
+            sliderLabel.textContent = label;
+            
+            const sliderValue = document.createElement('span');
+            sliderValue.className = 'slider-value';
+            sliderValue.id = `${id}Value`;
+            sliderValue.textContent = value.toFixed(2);
+            
+            sliderHeader.appendChild(sliderLabel);
+            sliderHeader.appendChild(sliderValue);
+            
+            // Create the range input
+            const sliderInput = document.createElement('input');
+            sliderInput.type = 'range';
+            sliderInput.id = id;
+            sliderInput.min = min;
+            sliderInput.max = max;
+            sliderInput.step = step;
+            sliderInput.value = value;
+            
+            // Add CSS variable for filled track effect
+            const percentage = ((value - min) / (max - min)) * 100;
+            sliderContainer.style.setProperty('--slider-fill', `${100 - percentage}%`);
+            
+            // Add event listener for slider change
+            sliderInput.addEventListener('input', e => {
+              const newValue = parseFloat(e.target.value);
+              sliderValue.textContent = newValue.toFixed(2);
+              
+              // Update CSS variable for filled track
+              const percentage = ((newValue - min) / (max - min)) * 100;
+              sliderContainer.style.setProperty('--slider-fill', `${100 - percentage}%`);
+              
+              // Update settings
+              if (simulator && simulator.settings) {
+                simulator.settings[id] = newValue;
+              }
+              
+              // Reinitialize particles if needed
+              if (reinit && simulator && typeof simulator.setParticleCount === 'function') {
+                simulator.setParticleCount(simulator.settings.particleCount);
+              }
+            });
+            
+            // Assemble slider
+            sliderContainer.appendChild(sliderHeader);
+            sliderContainer.appendChild(sliderInput);
+            
+            // Add to tab
+            tabContent.appendChild(sliderContainer);
+          });
+        }
+        
+        debug("Sliders created successfully");
+      }
+      
+      // Setup UI control panel handlers
+      function setupUIControls() {
+        debug("Setting up UI controls");
+        
+        // Setup control panel focusing
+        const controlPanels = document.querySelectorAll('.control-panel');
+        
+        // Focus control panel when clicked
+        controlPanels.forEach(panel => {
+          panel.addEventListener('mouseenter', () => {
+            // Remove focus from other panels
+            document.querySelectorAll('.control-panel').forEach(p => {
+              p.classList.remove('focused');
+            });
+            // Add focus to this panel
+            panel.classList.add('focused');
+          });
+        });
+        
+        // Toggle focus mode
+        const focusModeToggle = document.getElementById('focusModeToggle');
+        if (focusModeToggle) {
+          focusModeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('focus-mode');
+            
+            // Update toggle button appearance
+            focusModeToggle.classList.toggle('active');
+            
+            // Store preference in local storage
+            localStorage.setItem('focusMode', document.body.classList.contains('focus-mode'));
+          });
+          
+          // Restore focus mode preference
+          const focusMode = localStorage.getItem('focusMode');
+          if (focusMode === 'true') {
+            document.body.classList.add('focus-mode');
+            focusModeToggle.classList.add('active');
+          }
+        }
+        
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+          tab.addEventListener('click', () => {
+            const tabName = tab.getAttribute('data-tab');
+            
+            // Update active tab
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            // Show content for active tab and hide others
+            document.querySelectorAll('.tab-content').forEach(content => {
+              content.style.display = 'none';
+            });
+            
+            const activeTabContent = document.getElementById(`${tabName}-tab`);
+            if (activeTabContent) {
+              activeTabContent.style.display = 'block';
+            }
+          });
+        });
+        
+        // Shape mode buttons
+        document.querySelectorAll('#shapeModes button').forEach(button => {
+          button.addEventListener('click', () => {
+            const mode = button.getAttribute('data-mode');
+            
+            // Update button state
+            document.querySelectorAll('#shapeModes button').forEach(b => {
+              b.classList.remove('active');
+            });
+            button.classList.add('active');
+            
+            // Update shape mode via simulator
+            if (simulator && typeof simulator.setMode === 'function') {
+              simulator.setMode(mode);
+            }
+            
+            debug(`Shape mode set to: ${mode}`);
+          });
+        });
+        
+        // Color mode buttons
+        document.querySelectorAll('#colorModes button').forEach(button => {
+          button.addEventListener('click', () => {
+            const mode = button.getAttribute('data-mode');
+            
+            // Update button state
+            document.querySelectorAll('#colorModes button').forEach(b => {
+              b.classList.remove('active');
+            });
+            button.classList.add('active');
+            
+            // Update color mode via simulator
+            if (simulator && typeof simulator.setColorMode === 'function') {
+              simulator.setColorMode(mode);
+            }
+            
+            // Update dropdown if it exists
+            const colorDropdown = document.getElementById('colorMode');
+            if (colorDropdown) {
+              colorDropdown.value = mode;
+            }
+            
+            debug(`Color mode set to: ${mode}`);
+          });
+        });
+        
+        // Dropdown shape mode selector
+        const shapeDropdown = document.getElementById('shapeMode');
+        if (shapeDropdown) {
+          shapeDropdown.addEventListener('change', () => {
+            const mode = shapeDropdown.value;
+            
+            // Update simulator
+            if (simulator && typeof simulator.setMode === 'function') {
+              simulator.setMode(mode);
+            }
+            
+            // Update button active state if it exists
+            const button = document.querySelector(`#shapeModes button[data-mode="${mode}"]`);
+            if (button) {
+              document.querySelectorAll('#shapeModes button').forEach(b => {
+                b.classList.remove('active');
+              });
+              button.classList.add('active');
+            }
+            
+            debug(`Shape mode set to: ${mode} (dropdown)`);
+          });
+        }
+        
+        // Dropdown color mode selector
+        const colorDropdown = document.getElementById('colorMode');
+        if (colorDropdown) {
+          colorDropdown.addEventListener('change', () => {
+            const mode = colorDropdown.value;
+            
+            // Update simulator
+            if (simulator && typeof simulator.setColorMode === 'function') {
+              simulator.setColorMode(mode);
+            }
+            
+            // Update button active state if it exists
+            const button = document.querySelector(`#colorModes button[data-mode="${mode}"]`);
+            if (button) {
+              document.querySelectorAll('#colorModes button').forEach(b => {
+                b.classList.remove('active');
+              });
+              button.classList.add('active');
+            }
+            
+            debug(`Color mode set to: ${mode} (dropdown)`);
+          });
+        }
+        
+        // Custom color controls
+        const applyCustomColorsBtn = document.getElementById('applyCustomColors');
+        if (applyCustomColorsBtn) {
+          applyCustomColorsBtn.addEventListener('click', () => {
+            const particleColorEl = document.getElementById('particleColor');
+            const connectionColorEl = document.getElementById('connectionColor');
+            
+            if (particleColorEl && connectionColorEl && simulator) {
+              const particleColor = particleColorEl.value;
+              const connectionColor = connectionColorEl.value;
+              
+              debug(`Applying custom colors - particle: ${particleColor}, connection: ${connectionColor}`);
+              
+              if (simulator.setCustomColor) {
+                simulator.setCustomColor(particleColor);
+              }
+              
+              if (simulator.setConnectionColor) {
+                simulator.setConnectionColor(connectionColor);
+              }
+              
+              // Switch to custom color mode
+              if (simulator.setColorMode) {
+                simulator.setColorMode('custom');
+              }
+              
+              // Update dropdown and buttons
+              const colorDropdown = document.getElementById('colorMode');
+              if (colorDropdown) {
+                colorDropdown.value = 'custom';
+              }
+              
+              document.querySelectorAll('#colorModes button').forEach(b => {
+                b.classList.remove('active');
+              });
+              
+              const customButton = document.querySelector('#colorModes button[data-mode="custom"]');
+              if (customButton) {
+                customButton.classList.add('active');
+              }
+            }
+          });
+        }
+        
+        // Monochrome toggle - fixed implementation
+        const monoToggle = document.getElementById('monoToggle');
+        if (monoToggle) {
+          // Ensure simulator has monochrome property
+          if (typeof simulator.monochrome === 'undefined') {
+            simulator.monochrome = false;
+          }
+          
+          // Set initial state based on simulator
+          monoToggle.checked = simulator.monochrome;
+          
+          monoToggle.addEventListener('change', () => {
+            const isMonochrome = monoToggle.checked;
+            
+            // Actually apply monochrome to the simulator
+            simulator.monochrome = isMonochrome;
+            
+            // Save to settings for persistence
+            simulator.settings.monochrome = isMonochrome;
+            
+            // Update material color if needed
+            if (isMonochrome) {
+              // Apply grayscale to all particles by overriding colors
+              const colorArray = simulator.particleSystem.geometry.attributes.color.array;
+              const positionArray = simulator.particleSystem.geometry.attributes.position.array;
+              
+              // Set all colors to grayscale
+              for (let i = 0; i < simulator.settings.particleCount; i++) {
+                const i3 = i * 3;
+                if (i3 >= colorArray.length) break;
+                
+                // Calculate luminance-based grayscale
+                const r = colorArray[i3];
+                const g = colorArray[i3 + 1];
+                const b = colorArray[i3 + 2];
+                const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+                
+                // Apply slightly blue-tinted grayscale for better visuals
+                colorArray[i3] = luminance * 0.9;       // R
+                colorArray[i3 + 1] = luminance;         // G
+                colorArray[i3 + 2] = luminance * 1.1;   // B
+              }
+              
+              // Update connection material for monochrome
+              if (simulator.connectionsMaterial) {
+                if (simulator.connectionsMaterial.vertexColors) {
+                  // If using vertex colors, keep them, but will be updated in animation loop
+                } else {
+                  simulator.connectionsMaterial.color = new THREE.Color(0xaaaacc);
+                }
+              }
+            }
+            
+            debug(`Monochrome mode ${isMonochrome ? 'enabled' : 'disabled'}`);
+          });
+        }
+        
+        // Audio reactive toggle
+        const audioToggle = document.getElementById('audioToggle');
+        const audioControls = document.getElementById('audioControls');
+        
+        if (audioToggle && audioControls) {
+          audioControls.style.display = audioToggle.checked ? 'block' : 'none';
+          
+          audioToggle.addEventListener('change', () => {
+            const isAudioReactive = audioToggle.checked;
+            audioControls.style.display = isAudioReactive ? 'block' : 'none';
+            debug(`Audio reactive mode ${isAudioReactive ? 'enabled' : 'disabled'}`);
+            
+            // Audio context initialization would go here
+          });
+        }
+        
+        // Focus mode toggle
+        const focusToggle = document.getElementById('focusToggle');
+        if (focusToggle) {
+          focusToggle.addEventListener('change', () => {
+            document.body.classList.toggle('focus-mode', focusToggle.checked);
+            debug(`Focus mode ${focusToggle.checked ? 'enabled' : 'disabled'}`);
+          });
+        }
+        
+        // Debug console toggle
+        const toggleDebug = document.getElementById('toggleDebug');
+        const debugPanel = document.getElementById('debugPanel');
+        if (toggleDebug && debugPanel) {
+          toggleDebug.addEventListener('click', () => {
+            const isVisible = debugPanel.style.display !== 'none';
+            
+            debugPanel.style.display = isVisible ? 'none' : 'block';
+            toggleDebug.textContent = isVisible ? 'Show Debug Console' : 'Hide Debug Console';
+          });
+        }
+        
+        debug("UI controls setup complete");
+      }
+      
+      // Initialize app components
+      function initApp() {
+        try {
+          // Create chat components
+          createChatComponents();
+          
+          // Initialize simulator
+          simulator = initializeSimulator();
+          
+          // Connect chat to simulator
+          if (simulator) {
+            SimulatorIntegration.init(simulator);
+            
+            // Create sliders (this adds sliders to the tabbed settings panel)
+            createSliders();
+            
+            // Setup UI controls (buttons, toggles, etc.)
+            setupUIControls();
+            
+            // Setup event handlers for chat
+            setupEventHandlers();
+            
+            // Hide loading screen
+            const loadingScreen = document.getElementById('loadingScreen');
+            if (loadingScreen) {
+              setTimeout(() => {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => {
+                  loadingScreen.style.display = 'none';
+                }, 500);
+              }, 1000);
+            }
+          } else {
+            // Simulator failed to initialize
+            console.warn("Simulator failed to initialize, enabling limited mode");
+            
+            // We'll still setup the chat for helping with troubleshooting
+            setupEventHandlers();
+            
+            // Add a message to help troubleshoot
+            setTimeout(() => {
+              const chatMessages = document.getElementById('chatMessages');
+              if (chatMessages) {
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message system-message';
+                messageElement.innerHTML = `
+                  <div class="message-content">
+                    The simulation could not be initialized. This may be due to WebGL not being supported or enabled in your browser. 
+                    You can try the following:
+                    <ul>
+                      <li>Use a different browser (Chrome, Firefox, Edge)</li>
+                      <li>Update your graphics drivers</li>
+                      <li>Enable hardware acceleration in your browser settings</li>
+                    </ul>
+                  </div>
+                `;
+                chatMessages.appendChild(messageElement);
+              }
+              
+              // Show the chat interface automatically to display the message
+              const chatOverlay = document.querySelector('.chat-overlay');
+              if (chatOverlay) {
+                chatOverlay.classList.add('visible');
+              }
+            }, 1500);
+          }
+          
+          debug('Application initialized successfully');
+        } catch (error) {
+          debug(`Error initializing application: ${error.message}`);
+          console.error('Application initialization error:', error);
+          
+          // Display error message
+          updateLoadingStatus("Error: " + error.message);
+          
+          // Show a more user-friendly error
+          const loadingScreen = document.getElementById('loadingScreen');
+          if (loadingScreen) {
+            loadingScreen.innerHTML = '<div style="color: #ff5555; padding: 20px; max-width: 80%; text-align: center;">' +
+              '<h3>Application Error</h3>' +
+              '<p>' + error.message + '</p>' +
+              '<p>Check the browser console for details.</p>' +
+              '<button onclick="location.reload()">Reload</button>' +
+              '</div>';
+          }
+          console.error('Error initializing app:', error);
+        }
+      }
+      
+      // Setup event handlers for chat
+      function setupEventHandlers() {
+        // DOM elements
+        const chatBtn = document.getElementById('chatBtn');
+        const chatOverlay = document.getElementById('chatOverlay');
+        const chatClose = document.getElementById('chatClose');
+        const chatInput = document.getElementById('chatInput');
+        const chatSend = document.getElementById('chatSend');
+        const toggleApiVisibility = document.getElementById('toggleApiVisibility');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const modelSelect = document.getElementById('modelSelect');
+        const saveApiSettings = document.getElementById('saveApiSettings');
+        const apiStatus = document.getElementById('apiStatus');
+        
+        // Toggle chat visibility
+        if (chatBtn) {
+          chatBtn.addEventListener('click', () => {
+            chatOverlay.classList.add('visible');
+          });
+        }
+        
+        // Close chat
+        if (chatClose) {
+          chatClose.addEventListener('click', () => {
+            chatOverlay.classList.remove('visible');
+          });
+        }
+        
+        // Click outside to close
+        if (chatOverlay) {
+          chatOverlay.addEventListener('click', (event) => {
+            if (event.target === chatOverlay) {
+              chatOverlay.classList.remove('visible');
+            }
+          });
+        }
+        
+        // Send message on button click
+        if (chatSend) {
+          chatSend.addEventListener('click', sendMessage);
+        }
+        
+        // Send message on Enter key
+        if (chatInput) {
+          chatInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+              sendMessage();
+            }
+          });
+        }
+        
+        // Toggle API key visibility
+        if (toggleApiVisibility && apiKeyInput) {
+          toggleApiVisibility.addEventListener('click', () => {
+            const type = apiKeyInput.getAttribute('type');
+            apiKeyInput.setAttribute('type', type === 'password' ? 'text' : 'password');
+            toggleApiVisibility.textContent = type === 'password' ? '🔒' : '👁️';
+          });
+        }
+        
+        // Save API settings
+        if (saveApiSettings && apiKeyInput && modelSelect) {
+          saveApiSettings.addEventListener('click', () => {
+            const apiKey = apiKeyInput.value.trim();
+            const model = modelSelect.value;
+            
+            if (apiKey) {
+              // Save settings to localStorage
+              localStorage.setItem('openai_api_key', apiKey);
+              localStorage.setItem('openai_model', model);
+              
+              // Show success message
+              if (apiStatus) {
+                apiStatus.textContent = 'API settings saved!';
+                apiStatus.className = 'api-status success';
+                setTimeout(() => {
+                  apiStatus.className = 'api-status';
+                  apiStatus.textContent = '';
+                }, 3000);
+              }
+            }
+          });
+        }
+        
+        // Load saved API key
+        if (apiKeyInput) {
+          const savedApiKey = localStorage.getItem('openai_api_key');
+          if (savedApiKey) {
+            apiKeyInput.value = savedApiKey;
+          }
+        }
+        
+        // Load saved model
+        if (modelSelect) {
+          const savedModel = localStorage.getItem('openai_model');
+          if (savedModel) {
+            modelSelect.value = savedModel;
+          }
+        }
+        
+        // Handle simulator responses
+        document.addEventListener('simulator:response', (event) => {
+          const message = event.detail?.message;
+          const chatMessages = document.getElementById('chatMessages');
+          
+          if (message && chatMessages) {
+            // Create message element
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message assistant';
+            messageElement.innerHTML = `
+              <div class="message-content">
+                <p>${message}</p>
+              </div>
+              <span class="message-time">${getCurrentTime()}</span>
+            `;
+            
+            // Add to DOM
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+          }
+        });
+        
+        debug('Event handlers set up successfully');
+      }
+      
+      // Send message function
+      function sendMessage() {
+        const chatInput = document.getElementById('chatInput');
+        const chatMessages = document.getElementById('chatMessages');
+        
+        if (!chatInput || !chatInput.value.trim()) return;
+        
+        const userMessage = chatInput.value.trim();
+        chatInput.value = '';
+        
+        // Create user message element
+        const messageElement = document.createElement('div');
+        messageElement.className = 'message user';
+        messageElement.innerHTML = `
+          <div class="message-content">
+            <p>${userMessage}</p>
+          </div>
+          <span class="message-time">${getCurrentTime()}</span>
+        `;
+        
+        // Add to DOM
+        if (chatMessages) {
+          chatMessages.appendChild(messageElement);
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Emit event for simulator integration
+        const event = new CustomEvent('chat:message:sent', {
+          detail: { message: userMessage }
+        });
+        document.dispatchEvent(event);
+      }
+      
+      // Helper function for timestamp
+      function getCurrentTime() {
+        const now = new Date();
+        return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+      
+      // Start initialization
+      initApp();
+      
+      // Add a welcome message after a brief delay
+      setTimeout(() => {
+        // Trigger a welcome command
+        const welcomeEvent = new CustomEvent('simulator:response', {
+          detail: { 
+            message: 'Welcome to the Quantum Particle Simulator! Click the chat button in the bottom right to control the visualization. Try typing "/help" to see available commands.'
+          }
+        });
+        document.dispatchEvent(welcomeEvent);
+        
+        // Show the chat button with attention animation
+        const chatBtn = document.getElementById('chatBtn');
+        if (chatBtn) {
+          chatBtn.style.animation = 'pulse 1s 3';
+        }
+      }, 2000);
+    });
+  </script>
+  <!-- Chat Button -->
+  <div id="chatBtn" class="chat-button" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; background: rgba(0,0,0,0.7); color: white; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" onclick="document.getElementById('chatOverlay').classList.add('visible'); document.body.style.overflow = 'hidden';">
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
+  </div>
+  
+  <!-- Chat Overlay -->
+  <div id="chatOverlay" class="chat-overlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;">
+    <!-- Chat Modal -->
+    <div id="chatModal" class="chat-modal" style="width: 90%; max-width: 500px; height: 80%; max-height: 600px; background: #1a1a2e; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 5px 30px rgba(0,0,0,0.3); overflow: hidden; transform: translateY(20px); transition: transform 0.3s ease;">
+      <!-- Chat Header -->
+      <div class="chat-header" style="padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d2d42;">
+        <h3 style="margin: 0; color: var(--accent); font-weight: 500;">Quantum Simulator Assistant</h3>
+        <button id="chatClose" style="background: none; border: none; cursor: pointer; color: #999; font-size: 24px; line-height: 1;" onclick="document.getElementById('chatOverlay').classList.remove('visible'); document.body.style.overflow = '';">×</button>
+      </div>
+      
+      <!-- Chat Messages -->
+      <div id="chatMessages" class="chat-messages" style="flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+        <!-- Welcome message will appear here -->
+      </div>
+      
+      <!-- Chat Input -->
+      <div class="chat-input-container" style="padding: 15px; border-top: 1px solid #2d2d42; display: flex; gap: 10px;">
+        <input id="chatInput" type="text" placeholder="Type a message or command..." style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #3a3a50; background: #252538; color: white; outline: none;" onkeypress="if(event.key === 'Enter') { window.chatInterface && window.chatInterface.sendMessage ? window.chatInterface.sendMessage() : alert('Chat interface not fully loaded. Please try again in a moment.'); }" />
+        <button id="chatSend" style="background: var(--accent); color: white; border: none; border-radius: 8px; padding: 0 15px; cursor: pointer;" onclick="window.chatInterface && window.chatInterface.sendMessage ? window.chatInterface.sendMessage() : alert('Chat interface not fully loaded. Please try again in a moment.');">Send</button>
+      </div>
+      
+      <!-- Settings Panel -->
+      <div class="chat-settings" style="padding: 15px; border-top: 1px solid #2d2d42;">
+        <details>
+          <summary style="cursor: pointer; color: #7f7f99; padding: 5px 0;">API Settings</summary>
+          <div style="padding: 10px 0; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center;">
+              <label for="apiKeyInput" style="width: 80px; color: #7f7f99;">API Key:</label>
+              <div style="flex: 1; position: relative; display: flex;">
+                <input id="apiKeyInput" type="password" placeholder="OpenAI API Key" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #3a3a50; background: #252538; color: white; outline: none;" />
+                <button id="toggleApiVisibility" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #7f7f99; cursor: pointer;">👁️</button>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center;">
+              <label for="modelSelect" style="width: 80px; color: #7f7f99;">Model:</label>
+              <select id="modelSelect" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #3a3a50; background: #252538; color: white; outline: none;">
+                <option value="gpt-4">GPT-4</option>
+                <option value="gpt-3.5-turbo" selected>GPT-3.5 Turbo</option>
+                <option value="gpt-3.5-turbo-16k">GPT-3.5 Turbo (16k)</option>
+              </select>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 5px;">
+              <button id="saveApiSettings" style="flex: 1; padding: 8px; border-radius: 4px; background: #3a3a50; color: white; border: none; cursor: pointer;">Save Settings</button>
+              <button id="testApiConnection" style="flex: 1; padding: 8px; border-radius: 4px; background: #3a3a50; color: white; border: none; cursor: pointer;">Test Connection</button>
+            </div>
+            <div id="apiStatus" class="api-status" style="min-height: 20px; color: #7f7f99; font-size: 0.9em; margin-top: 5px;"></div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+  
+  <style>
+    /* Chat Styles */
+    .chat-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    .chat-overlay.visible .chat-modal {
+      transform: translateY(0);
+    }
+    
+    .message {
+      max-width: 80%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      position: relative;
+      margin-bottom: 5px;
+      word-break: break-word;
+    }
+    
+    .message.user {
+      align-self: flex-end;
+      background-color: var(--accent);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    
+    .message.assistant {
+      align-self: flex-start;
+      background-color: #2d2d42;
+      color: white;
+      border-bottom-left-radius: 4px;
+    }
+    
+    .message-time {
+      font-size: 0.7em;
+      opacity: 0.6;
+      margin-top: 4px;
+      display: block;
+      text-align: right;
+    }
+    
+    .typing-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+    }
+    
+    .typing-indicator span {
+      width: 7px;
+      height: 7px;
+      background-color: #a0a0a0;
+      border-radius: 50%;
+      display: inline-block;
+      animation: typingBounce 1.3s infinite ease-in-out;
+    }
+    
+    .typing-indicator span:nth-child(1) { animation-delay: 0s; }
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+    
+    @keyframes typingBounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-7px); }
+    }
+    
+    .api-status {
+      transition: color 0.3s ease;
+    }
+    
+    .api-status.success {
+      color: #55cc77;
+    }
+    
+    .api-status.error {
+      color: #ff5555;
+    }
+    
+    @media (max-width: 600px) {
+      .chat-modal {
+        height: 100%;
+        width: 100%;
+        max-height: none;
+        max-width: none;
+        border-radius: 0;
+      }
+    }
+  </style>
+  
+  <script>
+    // Initialize chat with welcome message
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log("Setting up welcome message");
+      // Add welcome message after small delay
+      setTimeout(() => {
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) {
+          // Clear any existing messages
+          chatMessages.innerHTML = '';
+          
+          // Create welcome message
+          const welcomeMessage = document.createElement('div');
+          welcomeMessage.className = 'message assistant';
+          
+          const content = document.createElement('div');
+          content.className = 'message-content';
+          
+          const text = document.createElement('p');
+          text.innerHTML = 'Welcome to the Quantum Particle Simulator! You can control the simulation using commands like:<br>' +
+            '- <code>/mode sphere</code> - Change visualization mode<br>' +
+            '- <code>/color spectrum</code> - Change color mode<br>' +
+            '- <code>/particles 500</code> - Set particle count<br>' +
+            '- <code>/mono on</code> - Toggle monochrome mode<br>' +
+            'Try asking how to use specific features or type <code>/help</code> for more commands.';
+          
+          content.appendChild(text);
+          
+          const time = document.createElement('span');
+          time.className = 'message-time';
+          time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          
+          welcomeMessage.appendChild(content);
+          welcomeMessage.appendChild(time);
+          
+          chatMessages.appendChild(welcomeMessage);
+          console.log("Welcome message added to chat");
+        } else {
+          console.error("Chat messages container not found");
+        }
+      }, 500);
+    });
+    
+    // Backup for welcome message if DOM already loaded
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      setTimeout(() => {
+        console.log("Using backup for welcome message");
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages && chatMessages.children.length === 0) {
+          // Create welcome message
+          const welcomeMessage = document.createElement('div');
+          welcomeMessage.className = 'message assistant';
+          
+          const content = document.createElement('div');
+          content.className = 'message-content';
+          
+          const text = document.createElement('p');
+          text.innerHTML = 'Welcome to the Quantum Particle Simulator! You can control the simulation using commands like:<br>' +
+            '- <code>/mode sphere</code> - Change visualization mode<br>' +
+            '- <code>/color spectrum</code> - Change color mode<br>' +
+            '- <code>/particles 500</code> - Set particle count<br>' +
+            '- <code>/mono on</code> - Toggle monochrome mode<br>' +
+            'Try asking how to use specific features or type <code>/help</code> for more commands.';
+          
+          content.appendChild(text);
+          
+          const time = document.createElement('span');
+          time.className = 'message-time';
+          time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          
+          welcomeMessage.appendChild(content);
+          welcomeMessage.appendChild(time);
+          
+          chatMessages.appendChild(welcomeMessage);
+          console.log("Welcome message added via backup");
+        }
+      }, 800);
+    }
+  </script>
+  
+  <!-- Direct chat interface fallback -->
+  <script>
+    // This is a last-resort fallback if the chat interface is not loading properly
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        // Check if chat interface was initialized properly
+        if (!window.chatInterface || !window.chatInterface.sendMessage) {
+          console.warn("Chat interface not initialized properly, setting up fallback");
+          
+          // Create basic chat interface functions
+          window.chatInterface = {
+            sendMessage: function() {
+              const chatInput = document.getElementById('chatInput');
+              const chatMessages = document.getElementById('chatMessages');
+              
+              if (!chatInput || !chatMessages) {
+                console.error("Chat elements not found!");
+                return;
+              }
+              
+              const message = chatInput.value.trim();
+              if (!message) return;
+              
+              // Clear input
+              chatInput.value = '';
+              
+              // Add user message
+              const userMessage = document.createElement('div');
+              userMessage.className = 'message user';
+              userMessage.innerHTML = `
+                <div class="message-content">
+                  <p>${message}</p>
+                </div>
+                <span class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              `;
+              chatMessages.appendChild(userMessage);
+              
+              // Add response
+              setTimeout(function() {
+                const botMessage = document.createElement('div');
+                botMessage.className = 'message assistant';
+                botMessage.innerHTML = `
+                  <div class="message-content">
+                    <p>I received your message: "${message}". To use the full chatbot functionality, please add your OpenAI API key in the settings panel below.</p>
+                  </div>
+                  <span class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                `;
+                chatMessages.appendChild(botMessage);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+              }, 1000);
+              
+              // Scroll to bottom
+              chatMessages.scrollTop = chatMessages.scrollHeight;
+            },
+            
+            toggleChat: function() {
+              const chatOverlay = document.getElementById('chatOverlay');
+              if (!chatOverlay) return;
+              
+              if (chatOverlay.classList.contains('visible')) {
+                chatOverlay.classList.remove('visible');
+                document.body.style.overflow = '';
+              } else {
+                chatOverlay.classList.add('visible');
+                document.body.style.overflow = 'hidden';
+              }
+            }
+          };
+          
+          // Make sure buttons have event listeners
+          const chatBtn = document.getElementById('chatBtn');
+          const chatClose = document.getElementById('chatClose');
+          const chatSend = document.getElementById('chatSend');
+          
+          if (chatBtn) {
+            chatBtn.addEventListener('click', window.chatInterface.toggleChat);
+          }
+          
+          if (chatClose) {
+            chatClose.addEventListener('click', window.chatInterface.toggleChat);
+          }
+          
+          if (chatSend) {
+            chatSend.addEventListener('click', window.chatInterface.sendMessage);
+          }
+          
+          console.log("Fallback chat interface initialized");
+        }
+      }, 2000); // Wait 2 seconds to make sure other scripts have a chance to load
+    });
+  </script>
+  
+  <!-- Focus Mode Toggle -->
+  <button id="focusModeToggle" class="settings-button" title="Toggle Focus Mode">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12s4.48 10 10 10 10-4.48 10-10z"></path>
+      <circle cx="12" cy="12" r="3"></circle>
+    </svg>
+  </button>
+  
+  <style>
+    #focusModeToggle {
+      position: fixed;
+      bottom: 20px;
+      right: 85px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 1000;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      color: var(--text);
+    }
+    
+    #focusModeToggle:hover {
+      transform: scale(1.1);
+      border-color: var(--accent);
+    }
+    
+    #focusModeToggle.active {
+      background: var(--accent);
+      color: white;
+    }
+  </style>
+</body>
+</html>

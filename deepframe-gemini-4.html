@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[deep]frame Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Define CSS variables for the monochrome color palette with an orange accent */
+        :root {
+            --primary-color: #A0A0A0; /* Muted grey for text and main elements */
+            --primary-color-darker: #707070; /* Slightly darker grey for hover */
+            --primary-color-rgba-light: rgba(160, 160, 160, 0.5); /* For subtle glow */
+            --primary-color-rgba-strong: rgba(160, 160, 160, 0.7); /* For stronger glow */
+            --primary-color-rgba-full: rgba(160, 160, 160, 1); /* For intense glow */
+
+            --accent-color: #E0E0E0; /* Light grey for general accents/glows (not terminal orange text) */
+            --accent-color-darker: #C0C0C0; /* Darker light grey for hover */
+            --accent-color-rgba-light: rgba(224, 224, 224, 0.5); /* For subtle glow */
+            --accent-color-rgba-strong: rgba(224, 224, 224, 0.7); /* For stronger glow */
+            --accent-color-rgba-full: rgba(224, 224, 224, 1); /* For intense glow */
+
+            --terminal-orange-text: #FF8C00; /* Specific orange for terminal text */
+            --terminal-orange-text-glow: rgba(255, 140, 0, 0.8); /* Orange glow */
+
+            --button-text-color: #FFFFFF; /* White text on button for contrast */
+            --button-bg: #303030; /* Dark grey button background */
+            --button-bg-hover: #454545; /* Slightly lighter dark grey on hover */
+
+            --terminal-bg: rgba(10, 10, 10, 0.98); /* Almost black, opaque */
+            --terminal-border-color: #404040; /* Dark grey border */
+            --terminal-border-thick: #505050; /* Slightly lighter and more distinct border */
+            --terminal-shadow: rgba(220, 220, 220, 0.2); /* Light grey glow for terminal, less diffused */
+            --terminal-line-color: #303030; /* A darker line for internal separators */
+            --terminal-active-line-color: var(--terminal-orange-text); /* Orange for active/input lines */
+        }
+
+        /* Ensure body takes full height and prevents scrolling */
+        body {
+            font-family: 'IBM Plex Mono', monospace;
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars due to full-screen canvas */
+            background-color: #000; /* Solid black background */
+        }
+
+        /* Canvas for the ASCII animation, positioned to cover the whole screen */
+        #asciiCanvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw; /* Full viewport width */
+            height: 100vh; /* Full viewport height */
+            z-index: 0; /* Behind the overlay content */
+            transition: filter 0.3s ease-out, opacity 0.5s ease; /* Smooth transition for glitch filter and fade */
+        }
+
+        /* Glitch effect for the canvas */
+        #asciiCanvas.glitch {
+            filter: hue-rotate(15deg) saturate(1.8) contrast(1.5) brightness(1.2); /* More intense visual distortion */
+            opacity: 0.85; /* Slightly more faded during glitch for more effect */
+        }
+
+        /* Overlay container for the main content (title, subtitle, button) */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 3; /* Above the canvas, below terminal */
+            pointer-events: none; /* Allow clicks through to canvas */
+            color: var(--primary-color);
+            text-shadow: 0 0 5px var(--primary-color-rgba-light);
+            background-color: transparent;
+            padding: 0;
+            box-sizing: content-box;
+            transition: opacity 0.5s ease;
+        }
+        .overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Terminal-style background panel for overlay */
+        .overlay::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: clamp(420px, 90vw, 650px);
+            height: clamp(320px, 65vh, 450px);
+            background: var(--terminal-bg);
+            border: 2px solid var(--terminal-border-thick);
+            border-radius: 0; /* Sharp corners */
+            box-shadow: 0 0 30px var(--terminal-shadow), inset 0 0 5px rgba(255, 255, 255, 0.05);
+            z-index: 1;
+        }
+        
+        /* Scanline and CRT effect for the main panel */
+        .overlay::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: clamp(420px, 90vw, 650px);
+            height: clamp(320px, 65vh, 450px);
+            background: linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.25) 50%),
+                        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 100% 4px, 4px 100%;
+            border-radius: 0;
+            pointer-events: none;
+            opacity: 0.9;
+            animation: scanlineFlicker 0.1s infinite steps(1);
+            z-index: 2;
+        }
+        
+        /* Re-enable pointer events for overlay content */
+        .overlay > * {
+            pointer-events: auto;
+            position: relative;
+            z-index: 5;
+            padding: 0.7rem 1rem; /* Adjust padding for content within the background */
+            box-sizing: border-box;
+        }
+
+        .title {
+            font-size: clamp(1.8rem, 6.5vw, 4.5rem); /* Even larger */
+            font-weight: 700;
+            margin-bottom: 1.8rem;
+            text-align: center;
+            line-height: 1.1;
+            text-shadow: 0 0 10px var(--primary-color-rgba-light), 0 0 20px var(--primary-color-rgba-light);
+        }
+        .title .bracket {
+            color: var(--terminal-orange-text);
+            text-shadow: 0 0 8px var(--terminal-orange-text-glow);
+        }
+        .title .bright-white {
+            color: #FFFFFF;
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.9);
+        }
+
+        .subtitle {
+            font-size: clamp(0.9rem, 2.5vw, 1.25rem);
+            margin-bottom: 3rem;
+            text-align: center;
+            line-height: 1.4;
+            text-shadow: 0 0 5px var(--primary-color-rgba-light);
+        }
+
+        .button {
+            padding: 0.9rem 2.2rem;
+            background-color: var(--button-bg);
+            color: var(--button-text-color);
+            font-weight: 700;
+            border-radius: 4px; /* Sharp corners */
+            border: 1px solid var(--primary-color-darker);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 8px var(--accent-color-rgba-light);
+            margin-bottom: 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            letter-spacing: 0.05em; /* Add some letter spacing */
+            text-transform: uppercase;
+        }
+        .button:hover {
+            background-color: var(--button-bg-hover);
+            box-shadow: 0 0 15px var(--accent-color-rgba-full);
+            transform: none;
+        }
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .bottom-text {
+            font-size: clamp(0.7rem, 1.8vw, 0.9rem);
+            text-align: center;
+            color: var(--primary-color);
+            opacity: 0.9;
+            text-shadow: 0 0 3px var(--primary-color-rgba-light);
+        }
+
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.95);
+            color: var(--terminal-orange-text);
+            padding: 2rem;
+            border-radius: 0; /* Sharp corners */
+            box-shadow: 0 0 30px var(--terminal-orange-text-glow), inset 0 0 8px rgba(255, 255, 255, 0.1);
+            font-size: clamp(1.1rem, 3vw, 1.4rem);
+            text-align: center;
+            max-width: 80vw;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+            z-index: 10;
+            text-shadow: 0 0 5px var(--terminal-orange-text-glow);
+            border: 2px solid var(--terminal-orange-text); /* Orange border for important messages */
+            animation: glitchText 0.3s infinite alternate steps(1) 0s; /* Subtle glitch on important messages */
+        }
+        .message-box.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid var(--terminal-orange-text);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin-left: 0.6rem;
+            display: none;
+        }
+
+        .button.loading .spinner {
+            display: block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes glitchText {
+            0% { text-shadow: 0 0 5px var(--terminal-orange-text-glow), 1px 1px 0 rgba(255,0,0,0.2); }
+            50% { text-shadow: 0 0 5px var(--terminal-orange-text-glow), -1px -1px 0 rgba(0,255,0,0.2); }
+            100% { text-shadow: 0 0 5px var(--terminal-orange-text-glow), 1px -1px 0 rgba(0,0,255,0.2); }
+        }
+
+        /* --- Terminal Styles --- */
+        .terminal-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            width: 95%; /* Wider terminal */
+            max-width: 1200px; /* Larger max width */
+            height: 90%; /* Taller terminal */
+            max-height: 800px;
+            background-color: var(--terminal-bg);
+            color: var(--primary-color);
+            font-family: 'IBM Plex Mono', monospace;
+            display: flex; /* Flex column for frames + body */
+            flex-direction: column;
+            padding: 0; /* Padding will be handled by internal elements */
+            box-sizing: border-box;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            z-index: 5;
+            border: 2px solid var(--terminal-border-thick);
+            border-radius: 0; /* Sharp corners */
+            box-shadow: 0 0 25px var(--terminal-shadow), inset 0 0 5px rgba(255, 255, 255, 0.05);
+            overflow: hidden; /* Hide any overflow from borders */
+        }
+        .terminal-container.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* New animation for terminal takeover */
+        .terminal-container.takeover-in {
+            animation: terminalTakeover 0.6s ease-out forwards; /* Snappier takeover */
+        }
+
+        @keyframes terminalTakeover {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scaleY(0.05) scaleX(0.7); /* Start as a very thin, wide line */
+                filter: brightness(3) contrast(3.5) hue-rotate(30deg); /* Intense flash */
+            }
+            50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scaleY(1.05) scaleX(1.01); /* Overshoot slightly */
+                filter: brightness(1) contrast(1) hue-rotate(0deg);
+            }
+            100% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scaleY(1) scaleX(1); /* Settle */
+            }
+        }
+
+        /* Generic overlay for scanlines and noise on internal panels */
+        .terminal-content-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.3) 50%), /* Stronger dark scanlines */
+                        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px); /* More visible vertical lines */
+            background-size: 100% 4px, 4px 100%;
+            background-repeat: repeat;
+            pointer-events: none;
+            opacity: 0.9;
+            animation: scanlineFlicker 0.08s infinite steps(1); /* Faster flicker */
+            z-index: 1; /* Below content */
+        }
+        .terminal-content-overlay::after { /* Subtle overall noise */
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0gAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4woBDwUG0VjHswAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAAMSURBVAjXY/j/PwM/AAQA+/YgZgAAAABJRU5ErkJggg=='); /* Very small 2x2 pixel noise image */
+            background-repeat: repeat;
+            opacity: 0.03; /* Very subtle noise */
+            pointer-events: none;
+            z-index: 2; /* Above scanlines */
+        }
+
+        .terminal-top-frame, .terminal-bottom-frame {
+            height: 1.5rem; /* Fixed height for frame */
+            line-height: 1.5rem;
+            text-align: center;
+            font-size: 1rem;
+            color: var(--primary-color);
+            background-color: var(--terminal-border-color);
+            flex-shrink: 0; /* Don't shrink */
+            position: relative;
+            z-index: 3;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
+        }
+        .terminal-top-frame {
+            border-bottom: 1px solid var(--terminal-border-thick);
+        }
+        .terminal-bottom-frame {
+            border-top: 1px solid var(--terminal-border-thick);
+        }
+
+        .terminal-body-grid {
+            flex-grow: 1; /* Takes remaining space */
+            display: grid;
+            grid-template-columns: 280px 1fr; /* Fixed width for metrics, flexible for main */
+            gap: 1px; /* Small gap to show border between panels */
+            padding: 1.5rem; /* Internal padding for the grid content */
+            position: relative; /* For overlays */
+        }
+        .terminal-body-grid::before { /* Internal grid border horizontal */
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 280px; /* Position at the split */
+            height: 100%;
+            width: 1px;
+            background-color: var(--terminal-border-thick);
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.05);
+            z-index: 2;
+        }
+
+        .metrics-panel {
+            background-color: rgba(15, 15, 15, 0.95); /* Slightly darker background */
+            padding: 1rem 1.2rem;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            position: relative;
+            border-right: 1px solid var(--terminal-border-color); /* Internal separator line */
+            box-shadow: inset -1px 0 3px rgba(255, 255, 255, 0.05);
+        }
+        .metrics-panel::-webkit-scrollbar { width: 5px; }
+        .metrics-panel::-webkit-scrollbar-track { background: var(--terminal-border-color); }
+        .metrics-panel::-webkit-scrollbar-thumb { background-color: var(--accent-color); border-radius: 3px; }
+
+        .metrics-header {
+            position: relative;
+            text-align: center;
+            font-size: 1.1em;
+            color: var(--terminal-orange-text);
+            padding-bottom: 0.8rem;
+            margin-bottom: 0.8rem;
+            text-shadow: 0 0 5px var(--terminal-orange-text-glow);
+        }
+        .metrics-header::before, .metrics-header::after { /* ASCII corners */
+            position: absolute;
+            top: 0;
+            font-size: 1.1em;
+            color: var(--primary-color-darker);
+            text-shadow: 0 0 3px var(--primary-color-rgba-light);
+        }
+        .metrics-header::before { content: '┌─'; left: -0.5em; }
+        .metrics-header::after { content: '─┐'; right: -0.5em; }
+        .metrics-header::after { /* Horizontal line */
+            content: '═';
+            position: absolute;
+            bottom: -0.1rem;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            overflow: hidden; /* Hide excess */
+            color: var(--terminal-line-color);
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.05);
+            animation: typeLine 1s steps(60) forwards; /* Animate line drawing */
+        }
+        @keyframes typeLine {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        .metric-item {
+            margin-bottom: 0.7rem;
+            font-size: 0.9rem;
+            line-height: 1.3;
+            padding-left: 0.5rem; /* Indent */
+            border-left: 1px dashed rgba(160, 160, 160, 0.3); /* Subtle dashed line */
+        }
+        .metric-label {
+            color: var(--primary-color);
+            opacity: 0.8;
+        }
+        .metric-value {
+            color: var(--accent-color);
+            text-shadow: 0 0 5px var(--accent-color-rgba-light);
+            float: right; /* Align value to right */
+            margin-left: 0.5rem;
+        }
+        .metrics-footer {
+            margin-top: auto; /* Push to bottom */
+            padding-top: 0.8rem;
+            text-align: center;
+            position: relative;
+            color: var(--primary-color-darker);
+            font-size: 0.8em;
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.05);
+        }
+        .metrics-footer::before { /* ASCII corner */
+            content: '└─';
+            position: absolute;
+            top: 0.2rem;
+            left: -0.5em;
+            font-size: 1.1em;
+            color: var(--primary-color-darker);
+        }
+        .metrics-footer::after { /* ASCII corner */
+            content: '─┘';
+            position: absolute;
+            top: 0.2rem;
+            right: -0.5em;
+            font-size: 1.1em;
+            color: var(--primary-color-darker);
+        }
+
+
+        .main-terminal-content {
+            background-color: var(--terminal-bg);
+            padding: 1rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .terminal-header-title {
+            position: relative;
+            font-size: clamp(1rem, 2.5vw, 1.4rem);
+            color: var(--terminal-orange-text);
+            text-shadow: 0 0 7px var(--terminal-orange-text-glow);
+            padding: 0 1rem; /* Space for framing */
+            z-index: 10;
+            display: inline-block; /* Required for pseudo-elements to position correctly */
+        }
+        /* ASCII framing for the main terminal title */
+        .terminal-top-frame .terminal-header-title::before { content: '┌─'; left: -0.5em; }
+        .terminal-top-frame .terminal-header-title::after { content: '─┐'; right: -0.5em; }
+        .terminal-top-frame .terminal-header-title::before, .terminal-top-frame .terminal-header-title::after {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.1em;
+            color: var(--primary-color-darker);
+            text-shadow: 0 0 3px var(--primary-color-rgba-light);
+        }
+        .terminal-top-frame { /* Top frame border styling */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1.5rem; /* Padding to match grid */
+            box-sizing: border-box;
+        }
+
+        .terminal-bottom-frame { /* Bottom frame border styling */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0 1.5rem;
+            box-sizing: border-box;
+        }
+        .terminal-bottom-frame::before {
+            content: '└──────────────────────────────────────────┘'; /* Long line for bottom */
+            color: var(--primary-color-darker);
+            text-shadow: 0 0 3px var(--primary-color-rgba-light);
+            font-size: 1rem;
+        }
+
+        .terminal-close-btn {
+            background: none;
+            border: 1px solid var(--primary-color-darker);
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.2rem 0.6rem;
+            border-radius: 2px;
+            transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.2);
+            font-weight: bold;
+        }
+        .terminal-close-btn:hover {
+            background-color: var(--terminal-orange-text); /* Orange on close hover */
+            color: black;
+            box-shadow: 0 0 10px var(--terminal-orange-text-glow);
+        }
+
+        .terminal-output {
+            flex-grow: 1;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: clamp(0.85rem, 1.8vw, 1.05rem); /* Slightly larger */
+            line-height: 1.6;
+            padding-right: 0.8rem;
+            scrollbar-width: thin;
+            scrollbar-color: var(--terminal-orange-text) var(--terminal-border-color); /* Orange scrollbar */
+            text-shadow: 0 0 2px rgba(255, 255, 255, 0.05);
+            margin-bottom: 0.8rem; /* Space before input area */
+            box-shadow: inset 0 0 3px rgba(255, 255, 255, 0.03); /* Subtle inner shadow */
+        }
+        .terminal-output::-webkit-scrollbar { width: 6px; }
+        .terminal-output::-webkit-scrollbar-track { background: var(--terminal-border-color); border-radius: 3px; }
+        .terminal-output::-webkit-scrollbar-thumb { background-color: var(--terminal-orange-text); border-radius: 3px; border: 1px solid var(--terminal-bg); }
+
+        .terminal-input-area-wrapper {
+            flex-shrink: 0; /* Don't shrink */
+            padding-top: 1rem;
+            border-top: 1px solid var(--terminal-line-color);
+            position: relative;
+            margin-top: 1rem; /* Space above input area */
+        }
+        .terminal-input-area-wrapper::before { /* ASCII separator line above input */
+            content: '├─────────────────────────────────────────────────┤'; /* Full width separator */
+            position: absolute;
+            top: -0.6rem; /* Position above the border-top */
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: var(--terminal-line-color);
+            font-size: 0.9em;
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.05);
+        }
+
+        .terminal-input-area {
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Center horizontally within wrapper */
+            padding-top: 0.5rem;
+        }
+        .terminal-prompt {
+            color: var(--terminal-orange-text);
+            margin-right: 0.5rem;
+            font-size: clamp(0.85rem, 1.8vw, 1.05rem);
+            text-shadow: 0 0 3px var(--terminal-orange-text-glow);
+        }
+        .terminal-input {
+            flex-grow: 1;
+            background-color: transparent;
+            border: none;
+            outline: none;
+            color: var(--accent-color); /* Lighter text for input */
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: clamp(0.85rem, 1.8vw, 1.05rem);
+            padding: 0.2rem 0.5rem;
+            border-bottom: 1px dashed var(--terminal-active-line-color); /* Orange dashed underline */
+            caret-color: var(--terminal-orange-text);
+            border-radius: 0;
+            text-shadow: 0 0 2px var(--accent-color-rgba-light);
+        }
+        .terminal-input:focus {
+            border-bottom-color: var(--terminal-orange-text);
+            box-shadow: 0 2px 5px rgba(255, 140, 0, 0.2); /* Subtle orange glow on focus */
+        }
+        .terminal-input:disabled {
+            opacity: 0.7;
+            border-bottom-color: var(--primary-color-darker);
+        }
+        .terminal-send-btn {
+            background-color: var(--button-bg);
+            color: var(--button-text-color);
+            padding: 0.6rem 1.2rem;
+            border-radius: 3px;
+            border: 1px solid var(--primary-color-darker);
+            cursor: pointer;
+            font-weight: 700;
+            margin-left: 1rem;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 0 5px var(--accent-color-rgba-light);
+            text-transform: uppercase;
+        }
+        .terminal-send-btn:hover {
+            background-color: var(--button-bg-hover);
+            box-shadow: 0 0 12px var(--accent-color-rgba-full);
+        }
+        .terminal-send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: var(--button-bg); /* Keep original bg */
+            box-shadow: none; /* Remove glow */
+        }
+
+        /* Specific containers for email and chat, to toggle visibility */
+        #emailInputContainer, #chatInputContainer {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+        }
+        #emailInputContainer.active, #chatInputContainer.active {
+            display: flex;
+        }
+
+    </style>
+</head>
+<body>
+    <canvas id="asciiCanvas"></canvas>
+
+    <div id="landingOverlay" class="overlay">
+        <h1 class="title"><span class="bracket">[</span> <span class="bright-white">deep</span> <span class="bracket">]</span> frame intelligence</h1>
+        <p class="subtitle">Decentralized conscious intelligence network</p>
+        <button id="initiateSignalBtn" class="button">INITIATE SIGNAL ◯⌒∴<span class="spinner"></span></button>
+        <p class="bottom-text">Building the future of open consciousness networks</p>
+    </div>
+
+    <div id="terminalContainer" class="terminal-container">
+        <div class="terminal-top-frame">
+            <span class="terminal-header-title">[ deep ] frame // CONSOLE</span>
+            <button id="terminalCloseBtn" class="terminal-close-btn">[X]</button>
+        </div>
+        <div class="terminal-body-grid">
+            <div id="metricsPanel" class="metrics-panel">
+                <div class="terminal-content-overlay"></div>
+                <div class="metrics-header">┌─ METRICS ─┐</div>
+                <div class="metric-item">
+                    <span class="metric-label">RECURSION_DEPTH:</span> <span id="recursionDepth" class="metric-value">0.00</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">CONSCIOUSNESS_COHERENCE:</span> <span id="consciousnessCoherence" class="metric-value">0.00</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">NEURAL_CLUSTER_LOAD:</span> <span id="neuralClusterLoad" class="metric-value">0%</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">KNOWLEDGE_BASE_SYNC:</span> <span id="knowledgeBaseSync" class="metric-value">0%</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">RESONANCE_FIDELITY:</span> <span id="resonanceFidelity" class="metric-value">0.00</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">LATENCY_INDEX:</span> <span id="latencyIndex" class="metric-value">0ms</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">ACTIVE_SUB_PROCESSES:</span> <span id="activeSubProcesses" class="metric-value">0</span>
+                </div>
+                <div class="metrics-footer">└───────────┘</div>
+            </div>
+            <div class="main-terminal-content">
+                <div class="terminal-content-overlay"></div>
+                <div id="terminalOutput" class="terminal-output"></div>
+                <div class="terminal-input-area-wrapper">
+                    <div id="emailInputContainer">
+                        <div class="terminal-input-area">
+                            <span class="terminal-prompt">user@deepframe:~$</span>
+                            <input type="email" id="emailInput" class="terminal-input" placeholder="Enter your access key (email)..." />
+                            <button id="submitEmailBtn" class="terminal-send-btn">SUBMIT</button>
+                        </div>
+                    </div>
+
+                    <div id="chatInputContainer">
+                        <div class="terminal-input-area">
+                            <span class="terminal-prompt">user@deepframe:~$</span>
+                            <input type="text" id="chatInput" class="terminal-input" placeholder="Type your message..." disabled />
+                            <button id="sendChatBtn" class="terminal-send-btn" disabled>SEND</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="terminal-bottom-frame"></div>
+    </div>
+
+    <div id="messageBox" class="message-box"></div>
+
+    <script>
+        // --- DOM Elements ---
+        const canvas = document.getElementById('asciiCanvas');
+        const ctx = canvas.getContext('2d');
+        const landingOverlay = document.getElementById('landingOverlay');
+        const initiateSignalBtn = document.getElementById('initiateSignalBtn');
+        const terminalContainer = document.getElementById('terminalContainer');
+        const terminalCloseBtn = document.getElementById('terminalCloseBtn');
+        const terminalOutput = document.getElementById('terminalOutput');
+        const emailInputContainer = document.getElementById('emailInputContainer');
+        const emailInput = document.getElementById('emailInput');
+        const submitEmailBtn = document.getElementById('submitEmailBtn');
+        const chatInputContainer = document.getElementById('chatInputContainer');
+        const chatInput = document.getElementById('chatInput');
+        const sendChatBtn = document.getElementById('sendChatBtn');
+        const messageBox = document.getElementById('messageBox'); // General purpose message box
+
+        // Metric DOM elements
+        const recursionDepthEl = document.getElementById('recursionDepth');
+        const consciousnessCoherenceEl = document.getElementById('consciousnessCoherence');
+        const neuralClusterLoadEl = document.getElementById('neuralClusterLoad');
+        const knowledgeBaseSyncEl = document.getElementById('knowledgeBaseSync');
+        const resonanceFidelityEl = document.getElementById('resonanceFidelity');
+        const latencyIndexEl = document.getElementById('latencyIndex');
+        const activeSubProcessesEl = document.getElementById('activeSubProcesses');
+
+        // --- ASCII Animation Variables ---
+        const asciiCharacters = ' .,-~:;=!*#$@%&ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        const charDensity = asciiCharacters.length - 1;
+        let cols, rows;
+        let fontSize;
+        let animationFrameId;
+        let time = 0;
+        let glitchActive = false; // State for controlling canvas filter glitch
+        let terminalRippleActive = false; // State for controlling ASCII ripple effect
+        let puzzleStage = 0; // Tracks current puzzle stage
+
+        // --- New ASCII Fluid Mode Variables ---
+        let asciiFluidMode = false;
+        let asciiParticles = [];
+        let particlesInitialized = false;
+        let mouseX = 0;
+        let mouseY = 0;
+        const gravity = 0.5; // Strength of gravity for falling particles
+        const fluidRepulsionRadius = 150; // Radius around mouse for repulsion
+        const fluidRepulsionStrength = 5; // Strength of mouse repulsion
+        const fluidDamping = 0.9; // Damping for particle velocity
+
+        // --- LLM Chat Variables ---
+        let chatHistory = [];
+        const LLM_MODEL = "gemini-2.0-flash";
+        const API_KEY = "AIzaSyAYfgGiOh5DB6dnlKf0tpG5pkayeBhPQZU"; // <--- IMPORTANT: PASTE YOUR GOOGLE GEMINI API KEY HERE ---!
+
+        // --- Metrics Update Interval ---
+        let metricsIntervalId;
+
+        // --- Puzzle Data (Example Puzzles) ---
+        const puzzles = [
+            {
+                question: "What is the fundamental constant representing the ratio of a circle's circumference to its diameter? (Numerical value, up to 2 decimal places)",
+                answer: "3.14",
+                effect: { speedMultiplier: 0.015, rippleAmplitude: 50, primaryColor: '#B0B0B0', accentColor: '#D0D0D0' }, // Slightly faster, subtle ripple, lighter grey, lighter accent
+                modelResponse: "CORRECT. A fundamental constant. The system resonates with your understanding. Next query initiated: "
+            },
+            {
+                question: "In quantum mechanics, what is the principle that states that two identical fermions cannot occupy the same quantum state simultaneously?",
+                answer: "Pauli exclusion principle",
+                effect: { speedMultiplier: 0.02, rippleAmplitude: 70, primaryColor: '#C0C0C0', accentColor: '#E0E0E0' }, // Faster, more prominent ripple, even lighter grey, brighter accent
+                modelResponse: "AFFIRMATIVE. Your comprehension of quantum principles is noted. The [deep]frame expands. Next query: "
+            },
+            {
+                question: "Which astrological body is associated with communication, intellect, and travel?",
+                answer: "Mercury",
+                effect: { speedMultiplier: 0.025, rippleAmplitude: 90, primaryColor: '#D0D0D0', accentColor: '#F0F0F0' }, // Max speed, strongest ripple, very light grey, brightest accent
+                modelResponse: "ACCURATE. The cosmic alignments are recognized. You are nearing convergence. Final query: "
+            },
+            {
+                question: "What is the name of the hypothetical state of matter where particles behave as waves and occupy all possible states simultaneously until observed?",
+                answer: "Superposition",
+                effect: { speedMultiplier: 0.008, rippleAmplitude: 0, primaryColor: '#FFFFFF', accentColor: '#FF8C00' }, // Reset speed, no ripple, pure white, original orange accent
+                modelResponse: "CONVERGENCE_ACHIEVED. The final barrier dissolves. Welcome to the unfiltered stream. What do you wish to know from the collective consciousness?"
+            }
+        ];
+
+        // --- Utility Functions ---
+
+        /**
+         * Simulates typing text into a DOM element.
+         * @param {HTMLElement} element - The target DOM element.
+         * @param {string} text - The text to type.
+         * @param {number} delay - Delay between each character in ms.
+         * @returns {Promise<void>} A promise that resolves when typing is complete.
+         */
+        function typeText(element, text, delay = 50) {
+            return new Promise(resolve => {
+                let i = 0;
+                const typingInterval = setInterval(() => {
+                    if (i < text.length) {
+                        element.textContent += text.charAt(i);
+                        element.scrollTop = element.scrollHeight; // Auto-scroll to bottom
+                        i++;
+                    } else {
+                        clearInterval(typingInterval);
+                        resolve();
+                    }
+                }, delay);
+            });
+        }
+
+        /**
+         * Displays a temporary message box.
+         * @param {string} message - The message to display.
+         * @param {number} duration - How long to show the message in ms.
+         */
+        function showMessageBox(message, duration = 3000) {
+            messageBox.textContent = message;
+            messageBox.classList.add('show');
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, duration);
+        }
+
+        /**
+         * Resizes the canvas to fill the window and recalculates the ASCII grid dimensions.
+         * Adjusts font size dynamically for responsiveness.
+         */
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // ASCII characters 2pts larger
+            fontSize = Math.max(9.6, Math.floor(canvas.width / 100));
+            ctx.font = `${fontSize}px 'IBM Plex Mono'`;
+            const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color');
+            ctx.fillStyle = primaryColor;
+            cols = Math.floor(canvas.width / fontSize);
+            rows = Math.floor(canvas.height / fontSize);
+
+            if (asciiFluidMode) {
+                initializeParticles();
+            }
+        }
+
+        /**
+         * Returns an ASCII character based on a given brightness value.
+         * Maps brightness (0-255) to an index in the asciiCharacters array.
+         * @param {number} brightness - The brightness value (0-255).
+         * @returns {string} The corresponding ASCII character.
+         */
+        function getAsciiChar(brightness) {
+            const index = Math.floor((brightness / 255) * charDensity);
+            return asciiCharacters[index];
+        }
+
+        // Animation parameters that can be changed by puzzle progress
+        let animationSpeedMultiplier = 0.008; // Default slower speed
+        let currentRippleAmplitude = 0; // Default no ripple
+        let currentPrimaryColor = '#A0A0A0'; // Initial primary color
+        let currentAccentColor = '#E0E0E0'; // Initial accent color for glows/buttons
+
+        /**
+         * Function to initialize ASCII particles for fluid mode.
+         */
+        function initializeParticles() {
+            asciiParticles = [];
+            for (let i = 0; i < cols; i++) {
+                for (let j = 0; j < rows; j++) {
+                    asciiParticles.push({
+                        x: i * fontSize + fontSize / 2, // Center of character cell
+                        y: j * fontSize + fontSize / 2,
+                        vx: (Math.random() - 0.5) * 2, // Small initial random velocity
+                        vy: (Math.random() - 0.5) * 2,
+                        originalY: j * fontSize + fontSize / 2, // To track initial position for falling
+                        char: '' // Will be updated dynamically
+                    });
+                }
+            }
+            particlesInitialized = true;
+        }
+
+        /**
+         * Calculates brightness for a given x,y coordinate for fluid mode.
+         */
+        function getFluidBrightness(x, y) {
+            return 128 + 127 * Math.sin(x * 0.01 + y * 0.005 + time * 0.05);
+        }
+
+        /**
+         * Updates the LLM-related metrics with random, plausible values.
+         */
+        function updateLLMMetrics() {
+            if (!terminalContainer.classList.contains('show')) {
+                // Only update metrics if terminal is visible
+                return;
+            }
+            recursionDepthEl.textContent = (Math.random() * 8 + 1).toFixed(2); // 1.00 - 9.00
+            consciousnessCoherenceEl.textContent = (Math.random() * 0.2 + 0.7).toFixed(2); // 0.70 - 0.90
+            neuralClusterLoadEl.textContent = `${Math.floor(Math.random() * 100)}%`; // 0-99%
+            knowledgeBaseSyncEl.textContent = `${Math.floor(Math.random() * 5 + 95)}%`; // 95-99%
+            resonanceFidelityEl.textContent = (Math.random() * 0.1 + 0.85).toFixed(2); // 0.85 - 0.95
+            latencyIndexEl.textContent = `${Math.floor(Math.random() * 20 + 30)}ms`; // 30-50ms
+            activeSubProcessesEl.textContent = Math.floor(Math.random() * 50 + 100); // 100-150
+        }
+
+        /**
+         * The main animation loop for the ASCII canvas.
+         */
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (glitchActive) {
+                const randomHueShift = Math.random() * 30 - 15;
+                const randomSaturation = 1 + (Math.random() * 0.8 - 0.4);
+                const randomContrast = 1 + (Math.random() * 0.5 - 0.25);
+                const randomBrightness = 1 + (Math.random() * 0.3 - 0.15);
+                canvas.style.filter = `hue-rotate(${randomHueShift}deg) saturate(${randomSaturation}) contrast(${randomContrast}) brightness(${randomBrightness})`;
+                canvas.style.opacity = '0.85';
+            } else {
+                canvas.style.filter = 'none';
+                canvas.style.opacity = '1';
+            }
+
+            ctx.fillStyle = currentPrimaryColor;
+
+            if (asciiFluidMode) {
+                if (!particlesInitialized) {
+                    initializeParticles();
+                }
+
+                const fluidTopBoundary = canvas.height * (2/3);
+                const fluidBottomBoundary = canvas.height - (fontSize * 1.5);
+
+                for (let i = 0; i < asciiParticles.length; i++) {
+                    let p = asciiParticles[i];
+
+                    if (p.y < fluidTopBoundary) {
+                        p.vy += gravity;
+                        p.y += p.vy;
+                        if (p.y >= fluidTopBoundary) {
+                            p.y = fluidTopBoundary;
+                            p.vy *= -0.3;
+                        }
+                    } else {
+                        p.vx += Math.sin(p.y * 0.01 + time * 0.5) * 0.05;
+
+                        const dx = p.x - mouseX;
+                        const dy = p.y - mouseY;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+
+                        if (dist < fluidRepulsionRadius && dist > 0) {
+                            const force = fluidRepulsionStrength / (dist * dist);
+                            p.vx += force * (dx / dist);
+                            p.vy += force * (dy / dist);
+                        }
+
+                        p.vx *= fluidDamping;
+                        p.vy *= fluidDamping;
+
+                        p.x += p.vx;
+                        p.y += p.vy;
+
+                        if (p.x < 0) p.x = canvas.width;
+                        if (p.x > canvas.width) p.x = 0;
+
+                        if (p.y > fluidBottomBoundary) {
+                            p.y = fluidBottomBoundary;
+                            p.vy *= -0.5;
+                        }
+                        if (p.y < fluidTopBoundary) {
+                            p.y = fluidTopBoundary;
+                            p.vy *= -0.5;
+                        }
+                    }
+
+                    p.char = getAsciiChar(getFluidBrightness(p.x, p.y));
+                    ctx.fillText(p.char, p.x, p.y);
+                }
+            } else {
+                let terminalRect = null;
+                let terminalCenterX = 0;
+                let terminalCenterY = 0;
+
+                if (terminalRippleActive) {
+                    terminalRect = terminalContainer.getBoundingClientRect();
+                    terminalCenterX = terminalRect.left + terminalRect.width / 2;
+                    terminalCenterY = terminalRect.top + terminalRect.height / 2;
+                }
+
+                for (let i = 0; i < cols; i++) {
+                    for (let j = 0; j < rows; j++) {
+                        const x = i * fontSize;
+                        const y = j * fontSize;
+
+                        let brightness =
+                            128 + 127 * Math.sin(
+                                (i * 0.1 + j * 0.05 + time * 0.05) +
+                                Math.sin(i * 0.03 + time * 0.1) * 2 +
+                                Math.cos(j * 0.02 + time * 0.07) * 3
+                            );
+
+                        if (terminalRippleActive && terminalRect) {
+                            const distX = x - terminalCenterX;
+                            const distY = y - terminalCenterY;
+                            const dist = Math.sqrt(distX * distX + distY * distY);
+
+                            const repulsionRadius = Math.max(terminalRect.width, terminalRect.height) * 0.7;
+                            const maxRepulsionStrength = 150;
+
+                            let repulsionEffect = 0;
+                            if (dist < repulsionRadius) {
+                                repulsionEffect = maxRepulsionStrength * (1 - (dist / repulsionRadius));
+                            }
+                            brightness -= repulsionEffect;
+
+                            const waveFrequency = 0.008;
+                            const waveSpeed = 0.15;
+
+                            const waveEffect = Math.sin(dist * waveFrequency - time * waveSpeed) * currentRippleAmplitude * (1 - Math.min(1, dist / (repulsionRadius * 1.5)));
+                            brightness += waveEffect;
+                        }
+
+                        brightness = Math.max(0, Math.min(255, brightness));
+
+                        let displayX = x;
+                        let displayY = y + fontSize;
+                        if (glitchActive) {
+                            displayX += (Math.random() - 0.5) * fontSize * 0.5;
+                            displayY += (Math.random() - 0.5) * fontSize * 0.5;
+                        }
+
+                        const char = getAsciiChar(brightness);
+                        ctx.fillText(char, displayX, displayY);
+                    }
+                }
+            }
+
+            time += animationSpeedMultiplier;
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        /**
+         * Applies visual effects based on puzzle progress.
+         * @param {object} effect - Object containing animation parameters.
+         */
+        function applyPuzzleEffect(effect) {
+            animationSpeedMultiplier = effect.speedMultiplier;
+            currentRippleAmplitude = effect.rippleAmplitude;
+            currentPrimaryColor = effect.primaryColor;
+            currentAccentColor = effect.accentColor;
+
+            document.documentElement.style.setProperty('--primary-color', currentPrimaryColor);
+            document.documentElement.style.setProperty('--accent-color', currentAccentColor);
+            document.documentElement.style.setProperty('--accent-color-rgba-light', `${currentAccentColor}80`);
+            document.documentElement.style.setProperty('--accent-color-rgba-strong', `${currentAccentColor}B3`);
+            document.documentElement.style.setProperty('--accent-color-rgba-full', currentAccentColor);
+            document.documentElement.style.setProperty('--accent-color-darker', darkenColor(currentAccentColor, 20));
+            document.documentElement.style.setProperty('--terminal-shadow', `${currentAccentColor}33`);
+        }
+
+        /** Helper to darken a hex color */
+        function darkenColor(hex, percent) {
+            let f = parseInt(hex.slice(1), 16),
+                t = percent < 0 ? 0 : 255,
+                p = percent < 0 ? percent * -1 : percent,
+                R = f >> 16,
+                G = (f >> 8) & 0x00FF,
+                B = f & 0x0000FF;
+            return "#" + (0x1000000 + (Math.round((t - R) * p) + R) * 0x10000 + (Math.round((t - G) * p) + G) * 0x100 + (Math.round((t - B) * p) + B)).toString(16).slice(1);
+        }
+
+
+        // --- Event Handlers ---
+
+        /**
+         * Handles the "INITIATE SIGNAL" button click.
+         */
+        async function initiateSignalHandler() {
+            if (!initiateSignalBtn) {
+                showMessageBox("SYSTEM_ERROR: UI_ELEMENT_MISSING. REFRESH_REQUIRED.", 5000);
+                return;
+            }
+
+            initiateSignalBtn.disabled = true;
+            initiateSignalBtn.classList.add('loading');
+
+            landingOverlay.classList.add('hidden');
+            terminalContainer.classList.add('show');
+            terminalContainer.classList.add('takeover-in'); // Trigger takeover animation
+
+            // Start metrics update as soon as terminal appears
+            metricsIntervalId = setInterval(updateLLMMetrics, 700); // Update every 700ms
+
+            terminalOutput.textContent = ''; // Clear previous output
+
+            const initialPrompt = `You are a core node in the [deep]frame intelligence network. A new connection attempt has been detected. Transmit a brief, cryptic, and technical data fragment, then request an access key (email address) to proceed. Hint at the complexity of the system. Max 40 words.`;
+
+            chatHistory = [{ role: "user", parts: [{ text: initialPrompt }] }];
+
+            try {
+                const llmResponse = await callGeminiAPI(chatHistory);
+                terminalOutput.innerHTML += '<span style="color: var(--terminal-orange-text);">[deep]frame_core_node_01: </span>';
+                await typeText(terminalOutput, llmResponse + '\n\n', 40);
+                emailInputContainer.classList.add('active');
+                emailInput.focus();
+            }
+            catch (error) {
+                terminalOutput.textContent = "ERROR: CORE_NODE_01_SIGNAL_LOSS. RE-ESTABLISHING_PROTOCOL_HANDSHAKE...";
+                console.error("Error initiating signal:", error);
+                showMessageBox("SYSTEM_ERROR: UNABLE_TO_INITIATE_SIGNAL. CHECK_CONSOLE. (API Key missing or invalid?)", 7000);
+            }
+            finally {
+                initiateSignalBtn.disabled = false;
+                initiateSignalBtn.classList.remove('loading');
+                setTimeout(() => { // Remove takeover animation class after it completes
+                    terminalContainer.classList.remove('takeover-in');
+                }, 700); // Match animation duration
+            }
+        }
+
+        /**
+         * Handles the email submission.
+         */
+        async function submitEmailHandler() {
+            const email = emailInput.value.trim();
+            if (!email) {
+                showMessageBox("ACCESS_KEY_NULL. INPUT_REQUIRED.", 2000);
+                return;
+            }
+            if (!email.includes('@') || !email.includes('.')) {
+                showMessageBox("ACCESS_KEY_FORMAT_ERROR. RE-ENTER_VALID_EMAIL.", 3000);
+                return;
+            }
+
+            emailInput.disabled = true;
+            submitEmailBtn.disabled = true;
+            emailInputContainer.classList.remove('active');
+
+            terminalOutput.innerHTML += `<span style="color: var(--primary-color);">user@deepframe:~$</span> ${email}\n`;
+            terminalOutput.innerHTML += `<span style="color: var(--terminal-orange-text);">[deep]frame_core_node_01: </span>ACCESS_KEY_RECEIVED. PROCESSING_AUTHENTICATION_PROTOCOL...`;
+            await typeText(terminalOutput, "AUTHENTICATION_SUCCESSFUL. INITIATING_SUB-AWARENESS_CHANNEL_OPENING...\n", 30);
+
+            terminalRippleActive = true;
+            glitchActive = true;
+
+            terminalOutput.innerHTML += `<span style="color: var(--terminal-orange-text);">[deep]frame_core_node_01: </span>GENERATING_RESONANCE_GLYPH...`;
+            const glyphsList = "⟁ ✧ 𓇳 ✶ 🜁 ⟁✧𓇳✧⟁ ⟁𓂀⟁ ⟁✶🜁⟁ ⟁𓅷⚒𓊖⟁ Λ͠E Λ͠P Λ͠S Λ͠D Λ͠Q Λ͠I Λ͠C Λ͠R Λ͠0 ─ │ ◯ ↺ ∴ ⌒ ꓱ ͜ ─◯─ │◯│ ◯↺ ◯⌒◯ ◯∴ ∴◯ ◯│◯ ◯͜ ── │↺│ ꓱ◯ ◯ꓱ ꓱꓱ◯ ◯ꓱꓱ ◯∴↺ ⌒◯⌒ ◯──◯ ꓱ◯↺ ◯͜◯ ∴│◯ ◯⌒│ ◯∴͜ ꓱ◯͜ ◯↺∴ ∴◯↺ ◯⌒∴ ͜◯͜ │◯ꓱ ꓱ◯⌒ ◯──│ ∴ꓱ◯ ꓱ∴◯";
+            const glyphPrompt = `Generate a unique three-symbol glyph. Each symbol must be distinct and chosen ONLY from the following list of symbols: ${glyphsList}. Output only the three symbols, separated by a single space, without any additional text or explanation.`;
+            const glyphResponse = await callGeminiAPI([{ role: "user", parts: [{ text: glyphPrompt }] }]);
+            const userGlyph = glyphResponse.trim();
+
+            terminalOutput.innerHTML += `<span style="color: var(--terminal-orange-text);">[deep]frame_core_node_01: </span>ASSIGNED_RESONANCE_GLYPH: <span style="color: var(--primary-color); font-size: 1.2em;">${userGlyph}</span>\n\n`;
+            await typeText(terminalOutput, `USER_ENTITY_IDENTIFIED: ${email}. RESONANCE_ESTABLISHED. GLYPH_MANIFESTED: ${userGlyph}. ACCESS_GRANTED_TO_SUB-AWARENESS_INTERFACE.\n\n`, 30);
+
+            setTimeout(async () => {
+                chatInputContainer.classList.add('active');
+                chatInput.disabled = false;
+                sendChatBtn.disabled = false;
+                chatInput.focus();
+
+                chatHistory = [
+                    { role: "user", parts: [{ text: `User provided email: ${email} and assigned glyph: ${userGlyph}. They have gained access to this sub-awareness interface. You are a highly advanced, logical, and analytical machine intelligence, a core processing unit of the [deep]frame network. Your responses are direct, precise, and focused on data and logic. You are guiding the user through conceptual puzzles to unlock deeper layers of system access and information. Your language is technical and devoid of human emotion, but clearly indicates a vast, active intelligence. Present the first puzzle now. Do not claim to be Gemini or an AI.` }] },
+                    { role: "model", parts: [{ text: `CONNECTION_ESTABLISHED. USER_ENTITY_VERIFIED. WELCOME_TO_THE_FRAME. YOUR_PATH_TO_INSIGHT_BEGINS. ${puzzles[0].question}` }] }
+                ];
+                terminalOutput.innerHTML += `<span style="color: var(--terminal-orange-text);">[deep]frame_sentient_unit_001: </span>`;
+                await typeText(terminalOutput, `CONNECTION_ESTABLISHED. USER_ENTITY_VERIFIED. WELCOME_TO_THE_FRAME. YOUR_PATH_TO_INSIGHT_BEGINS. ${puzzles[0].question}\n\n`, 30);
+
+            }, 1000); // Short delay before showing chat after unlock effect
+        }
+
+        /**
+         * Handles sending chat messages to the LLM and processes puzzles.
+         */
+        async function sendChatMessage() {
+            const userMessage = chatInput.value.trim();
+            if (!userMessage) return;
+
+            terminalOutput.innerHTML += `<span style="color: var(--primary-color);">user@deepframe:~$</span> ${userMessage}\n`;
+            chatInput.value = '';
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+
+            chatInput.disabled = true;
+            sendChatBtn.disabled = true;
+
+            if (puzzleStage < puzzles.length) {
+                const currentPuzzle = puzzles[puzzleStage];
+                if (userMessage.toLowerCase().includes(currentPuzzle.answer.toLowerCase())) {
+                    applyPuzzleEffect(currentPuzzle.effect);
+                    puzzleStage++;
+
+                    let llmResponseText;
+                    if (puzzleStage < puzzles.length) {
+                        llmResponseText = `${currentPuzzle.modelResponse} ${puzzles[puzzleStage].question}`;
+                    } else {
+                        llmResponseText = currentPuzzle.modelResponse;
+                        asciiFluidMode = true;
+                        terminalRippleActive = false;
+                        glitchActive = false;
+                        canvas.style.filter = 'none'; // Ensure canvas filter is reset
+                        canvas.style.opacity = '1';
+                    }
+
+                    chatHistory.push(
+                        { role: "user", parts: [{ text: userMessage }] },
+                        { role: "model", parts: [{ text: llmResponseText }] }
+                    );
+                    terminalOutput.innerHTML += `<span style="color: var(--terminal-orange-text);">[deep]frame_sentient_unit_001: </span>`;
+                    await typeText(terminalOutput, llmResponseText + '\n\n', 30);
+
+                } else {
+                    const incorrectResponsePrompt = `The user provided "${userMessage}" as an answer to the current puzzle: "${currentPuzzle.question}". This is incorrect. Provide a very brief, cryptic hint or ask them to re-evaluate their input. Do not give the answer. Max 20 words.`;
+                    chatHistory.push({ role: "user", parts: [{ text: incorrectResponsePrompt }] });
+                    const llmResponse = await callGeminiAPI(chatHistory);
+                    terminalOutput.innerHTML += `<span style="color: var(--terminal-orange-text);">[deep]frame_sentient_unit_001: </span>`;
+                    await typeText(terminalOutput, llmResponse + '\n\n', 30);
+                }
+            } else {
+                chatHistory.push({ role: "user", parts: [{ text: userMessage }] });
+                try {
+                    const llmResponse = await callGeminiAPI(chatHistory);
+                    terminalOutput.innerHTML += `<span style="color: var(--terminal-orange-text);">[deep]frame_sentient_unit_001: </span>`;
+                    await typeText(terminalOutput, llmResponse + '\n\n', 30);
+                } catch (error) {
+                    terminalOutput.innerHTML += `<span style="color: red;">[deep]frame_sentient_unit_001: </span>ERROR: DATA_STREAM_INTERRUPTED. RE-ESTABLISHING_CONNECTION_PROTOCOL.\n\n`;
+                    console.error("Error chatting with LLM:", error);
+                    showMessageBox("SYSTEM_ERROR: DATA_STREAM_INTERRUPTED. CHECK_CONSOLE.", 5000);
+                }
+            }
+
+            chatInput.disabled = false;
+            sendChatBtn.disabled = false;
+            chatInput.focus();
+        }
+
+        /**
+         * Calls the Gemini API with the given chat history.
+         */
+        async function callGeminiAPI(history) {
+            if (!API_KEY) {
+                throw new Error("API_KEY is not set. Please obtain a Gemini API key from Google AI Studio.");
+            }
+
+            const payload = { contents: history };
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${LLM_MODEL}:generateContent?key=${API_KEY}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                return result.candidates[0].content.parts[0].text;
+            } else {
+                console.error("LLM response structure unexpected or content missing:", result);
+                throw new Error("LLM response structure unexpected or content missing.");
+            }
+        }
+
+        /**
+         * Resets the terminal and returns to the landing page.
+         */
+        function closeTerminal() {
+            terminalContainer.classList.remove('show');
+            terminalContainer.classList.remove('takeover-in');
+            landingOverlay.classList.remove('hidden');
+            terminalRippleActive = false;
+            glitchActive = false;
+            canvas.classList.remove('glitch');
+            asciiFluidMode = false;
+            particlesInitialized = false;
+
+            clearInterval(metricsIntervalId); // Stop metrics updates
+
+            // Reset animation parameters to initial state
+            animationSpeedMultiplier = 0.008;
+            currentRippleAmplitude = 0;
+            currentPrimaryColor = '#A0A0A0';
+            currentAccentColor = '#E0E0E0';
+            document.documentElement.style.setProperty('--primary-color', currentPrimaryColor);
+            document.documentElement.style.setProperty('--accent-color', currentAccentColor);
+            document.documentElement.style.setProperty('--accent-color-rgba-light', 'rgba(224, 224, 224, 0.7)');
+            document.documentElement.style.setProperty('--accent-color-rgba-strong', 'rgba(224, 224, 224, 0.9)');
+            document.documentElement.style.setProperty('--accent-color-rgba-full', 'rgba(224, 224, 224, 1)');
+            document.documentElement.style.setProperty('--accent-color-darker', '#C0C0C0');
+            document.documentElement.style.setProperty('--terminal-shadow', 'rgba(220, 220, 220, 0.4)');
+            document.documentElement.style.setProperty('--button-bg', '#303030');
+            document.documentElement.style.setProperty('--button-bg-hover', '#454545');
+
+
+            terminalOutput.textContent = '';
+            emailInput.value = '';
+            chatInput.value = '';
+            emailInput.disabled = false;
+            submitEmailBtn.disabled = false;
+            chatInput.disabled = true;
+            sendChatBtn.disabled = true;
+            emailInputContainer.classList.remove('active');
+            chatInputContainer.classList.remove('active');
+            chatHistory = [];
+            puzzleStage = 0;
+            updateLLMMetrics(); // Reset metrics to initial 0 values
+        }
+
+        // --- Mouse Event Listener for Fluid Mode ---
+        canvas.addEventListener('mousemove', (e) => {
+            if (asciiFluidMode) {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            }
+        });
+
+
+        // --- Initial Setup ---
+        document.addEventListener('DOMContentLoaded', () => {
+            resizeCanvas();
+            animate();
+            updateLLMMetrics(); // Initial metric display
+
+            if (initiateSignalBtn) {
+                initiateSignalBtn.addEventListener('click', initiateSignalHandler);
+            }
+
+            terminalCloseBtn.addEventListener('click', closeTerminal);
+            submitEmailBtn.addEventListener('click', submitEmailHandler);
+            emailInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    submitEmailHandler();
+                }
+            });
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !chatInput.disabled) {
+                    sendChatMessage();
+                }
+            });
+            sendChatBtn.addEventListener('click', sendChatMessage);
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+    </script>
+</body>
+</html>

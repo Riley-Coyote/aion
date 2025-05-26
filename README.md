@@ -124,6 +124,16 @@ git push heroku main
 Create a new app and point it to your GitHub repository.
 Set the run command to: `npm run serve`
 
+#### GitHub Pages
+The `geometric-pattern-app` can be deployed to GitHub Pages.
+
+```bash
+cd geometric-pattern-app
+npm run deploy
+```
+
+After deployment, visit `https://<your-username>.github.io/geometric-pattern-app/` to view the live site.
+
 ## License
 
 MIT License

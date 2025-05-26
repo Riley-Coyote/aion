@@ -1,0 +1,72 @@
+/* Global styling */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: Arial, sans-serif;
+  background: #0a0a0a;
+  color: #fff;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-header {
+  text-align: center;
+  padding: 0.75rem 0;
+  font-weight: 300;
+  opacity: 0.8;
+}
+
+.main-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  padding: 1rem;
+}
+
+.canvas-container {
+  width: 100%;
+  max-width: 800px;
+  height: 100%;
+  max-height: 80vh;
+}
+
+.pattern-controls {
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+@media (min-width: 768px) {
+  .main-container {
+    flex-direction: row;
+  }
+  .pattern-controls {
+    position: fixed;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 250px;
+  }
+}
+
+@media (max-width: 767px) {
+  .main-container {
+    flex-direction: column;
+  }
+  .pattern-controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-radius: 0;
+    width: 100%;
+  }
+}

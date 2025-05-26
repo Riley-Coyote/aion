@@ -8,16 +8,27 @@ export default function App() {
   const [hue, setHue] = useState(200);
 
   return (
-    <>
-      <MinimalPattern lineSpacing={lineSpacing} rotationSpeed={rotationSpeed} hue={hue} />
-      <PatternControls
-        lineSpacing={lineSpacing}
-        setLineSpacing={setLineSpacing}
-        rotationSpeed={rotationSpeed}
-        setRotationSpeed={setRotationSpeed}
-        hue={hue}
-        setHue={setHue}
-      />
-    </>
+    <div className="app">
+      <header className="app-header">
+        <h1>Geometric Pattern</h1>
+      </header>
+      <main className="main-container">
+        <div className="canvas-container">
+          <MinimalPattern
+            lineSpacing={lineSpacing}
+            rotationSpeed={rotationSpeed}
+            hue={hue}
+          />
+        </div>
+        <PatternControls
+          lineSpacing={lineSpacing}
+          setLineSpacing={setLineSpacing}
+          rotationSpeed={rotationSpeed}
+          setRotationSpeed={setRotationSpeed}
+          hue={hue}
+          setHue={setHue}
+        />
+      </main>
+    </div>
   );
 }

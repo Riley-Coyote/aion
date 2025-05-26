@@ -2,10 +2,9 @@ import React, { useRef, useEffect } from 'react';
 
 function containerStyle(hue) {
   return {
-    width: '100vw',
-    height: '100vh',
-    margin: 0,
-    overflow: 'hidden',
+    width: '100%',
+    height: '100%',
+    display: 'block',
     background: `hsl(${hue}, 20%, 10%)`,
   };
 }
@@ -15,8 +14,12 @@ export default function MinimalPattern({ lineSpacing, rotationSpeed, hue }) {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const resize = () => {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+    };
+    resize();
+    window.addEventListener('resize', resize);
     const ctx = canvas.getContext('2d');
     let angle = 0;
     let rafId;
@@ -42,7 +45,10 @@ export default function MinimalPattern({ lineSpacing, rotationSpeed, hue }) {
     };
 
     render();
-    return () => cancelAnimationFrame(rafId);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', resize);
+    };
   }, [lineSpacing, rotationSpeed, hue]);
 
   return <canvas ref={canvasRef} style={containerStyle(hue)} />;

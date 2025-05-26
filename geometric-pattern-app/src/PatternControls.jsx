@@ -1,8 +1,15 @@
 import React from 'react';
 
-export default function PatternControls({ lineSpacing, setLineSpacing, rotationSpeed, setRotationSpeed, hue, setHue }) {
+export default function PatternControls({
+  lineSpacing,
+  setLineSpacing,
+  rotationSpeed,
+  setRotationSpeed,
+  hue,
+  setHue,
+}) {
   return (
-    <div className="pattern-controls" style={{ position: 'absolute', top: 10, left: 10, color: '#fff' }}>
+    <div className="pattern-controls">
       <div>
         <label>
           Line Spacing: {lineSpacing}

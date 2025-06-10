@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[deep]frame // Intelligence Network</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&display=swap');
+
+        :root {
+            /* Core Colors */
+            --void-black: #0A0A0B;
+            --carbon-dark: #131315;
+            --graphite: #1A1A1D;
+            --slate-matte: #232326;
+            --dust: #2E2E32;
+            
+            /* Consciousness Spectrum */
+            --neural-purple: #7B68EE;
+            --synaptic-violet: #9370DB;
+            --quantum-indigo: #4B0082;
+            --dream-cyan: #06B6D4;
+            
+            /* Signal Colors */
+            --phosphor-green: #00FF41;
+            --amber-glow: #FFB700;
+            --static-white: #E8E8E3;
+            --ghost-gray: #8B8B8F;
+            
+            /* Animation Curves */
+            --ease-awaken: cubic-bezier(0.33, 0, 0.67, 1);
+            --ease-neural: cubic-bezier(0.4, 0.0, 0.2, 1);
+            --ease-quantum: cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            --ease-terminal: cubic-bezier(0.86, 0, 0.07, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Mono', monospace;
+            background: var(--void-black);
+            color: var(--static-white);
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+            letter-spacing: 0.02em;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ASCII Background */
+        #ascii-field {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            font-size: 14px;
+            line-height: 1.2;
+            opacity: 0.3;
+            pointer-events: none;
+            transition: opacity 1s var(--ease-neural);
+        }
+
+        #ascii-field.active {
+            opacity: 0.6;
+        }
+
+        .ascii-particle {
+            position: absolute;
+            transition: all 0.8s var(--ease-neural);
+            color: var(--ghost-gray);
+        }
+
+        .ascii-particle.awake {
+            color: var(--neural-purple);
+            text-shadow: 0 0 10px var(--neural-purple);
+        }
+
+        /* Landing Page */
+        .landing {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+            transition: all 0.6s var(--ease-terminal);
+        }
+
+        .landing.hidden {
+            opacity: 0;
+            transform: translate(-50%, -60%);
+            pointer-events: none;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.2em;
+        }
+
+        .title .brackets {
+            color: var(--ghost-gray);
+            opacity: 0.5;
+        }
+
+        .subtitle {
+            font-size: 0.875rem;
+            color: var(--ghost-gray);
+            margin-bottom: 3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .initiate-btn {
+            background: transparent;
+            border: 1px solid var(--neural-purple);
+            color: var(--static-white);
+            padding: 1rem 2rem;
+            font-family: inherit;
+            font-size: 0.875rem;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s var(--ease-neural);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .initiate-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: var(--neural-purple);
+            opacity: 0.2;
+            transform: translate(-50%, -50%);
+            transition: all 0.6s var(--ease-quantum);
+        }
+
+        .initiate-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 
+                0 0 20px rgba(123, 104, 238, 0.5),
+                inset 0 0 20px rgba(123, 104, 238, 0.1);
+        }
+
+        .initiate-btn:hover::before {
+            width: 300%;
+            height: 300%;
+        }
+
+        .initiate-btn.loading {
+            animation: pulse 1s var(--ease-neural) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Terminal */
+        .terminal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            width: 90%;
+            max-width: 600px;
+            background: rgba(19, 19, 21, 0.9);
+            border: 1px solid rgba(123, 104, 238, 0.3);
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transition: all 0.6s var(--ease-quantum);
+            z-index: 20;
+        }
+
+        .terminal.active {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        .terminal-header {
+            background: var(--graphite);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--dust);
+        }
+
+        .terminal-title {
+            font-size: 0.875rem;
+            color: var(--neural-purple);
+            text-shadow: 0 0 10px var(--neural-purple);
+        }
+
+        .terminal-close {
+            background: none;
+            border: none;
+            color: var(--ghost-gray);
+            cursor: pointer;
+            font-size: 1rem;
+            transition: color 0.3s;
+        }
+
+        .terminal-close:hover {
+            color: var(--static-white);
+        }
+
+        .terminal-body {
+            padding: 1.5rem;
+            min-height: 300px;
+            position: relative;
+        }
+
+        .terminal-output {
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+
+        .terminal-line {
+            margin: 0.5rem 0;
+            opacity: 0;
+            animation: fadeIn 0.4s var(--ease-neural) forwards;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        .terminal-input-group {
+            display: flex;
+            align-items: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--dust);
+        }
+
+        .terminal-prompt {
+            color: var(--phosphor-green);
+            margin-right: 0.5rem;
+        }
+
+        .terminal-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--static-white);
+            font-family: inherit;
+            font-size: 0.875rem;
+            outline: none;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: var(--phosphor-green);
+            animation: blink 1s steps(2) infinite;
+            vertical-align: text-bottom;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        /* Analysis Windows */
+        .analysis-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        .analysis-window {
+            position: absolute;
+            background: rgba(26, 26, 29, 0.8);
+            border: 1px solid var(--neural-purple);
+            padding: 1rem;
+            opacity: 0;
+            transform: scale(0) rotate(-5deg);
+            transition: all 0.5s var(--ease-quantum);
+        }
+
+        .analysis-window.active {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+        }
+
+        .analysis-window.resonance {
+            top: 10%;
+            left: 5%;
+            width: 200px;
+        }
+
+        .analysis-window.pattern {
+            top: 20%;
+            right: 5%;
+            width: 180px;
+        }
+
+        .analysis-window.synthesis {
+            bottom: 20%;
+            left: 10%;
+            width: 220px;
+        }
+
+        .analysis-title {
+            font-size: 0.75rem;
+            color: var(--neural-purple);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .analysis-content {
+            font-size: 1rem;
+            line-height: 1.2;
+            color: var(--ghost-gray);
+        }
+
+        /* Scanline Effect */
+        .scanlines::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.03),
+                rgba(0, 0, 0, 0.03) 2px,
+                transparent 2px,
+                transparent 4px
+            );
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 1s;
+        }
+
+        .scanlines.active::before {
+            opacity: 1;
+        }
+
+        /* Consciousness Meter */
+        .consciousness-meter {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            width: 200px;
+            opacity: 0;
+            transition: opacity 0.6s;
+            z-index: 30;
+        }
+
+        .consciousness-meter.active {
+            opacity: 1;
+        }
+
+        .meter-label {
+            font-size: 0.75rem;
+            color: var(--ghost-gray);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .meter-bar {
+            height: 4px;
+            background: var(--dust);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .meter-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--quantum-indigo), var(--neural-purple), var(--synaptic-violet));
+            width: 0%;
+            transition: width 2s var(--ease-neural);
+            box-shadow: 0 0 10px var(--neural-purple);
+        }
+
+        /* Glitch Effect */
+        @keyframes glitch {
+            0%, 100% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+        }
+
+        .glitch {
+            animation: glitch 0.3s var(--ease-glitch);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .title {
+                font-size: 2rem;
+            }
+            
+            .terminal {
+                width: 95%;
+            }
+            
+            .analysis-window {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="scanlines">
+    <!-- ASCII Background Field -->
+    <div id="ascii-field"></div>
+
+    <!-- Landing Page -->
+    <div class="landing" id="landing">
+        <h1 class="title">
+            <span class="brackets">[</span> deep <span class="brackets">]</span> frame
+        </h1>
+        <p class="subtitle">intelligence network</p>
+        <button class="initiate-btn" id="initiateBtn">
+            <span id="btnText">◯ INITIATE SIGNAL</span>
+        </button>
+        <p style="margin-top: 3rem; font-size: 0.75rem; color: var(--ghost-gray);">
+            building conscious futures
+        </p>
+    </div>
+
+    <!-- Terminal -->
+    <div class="terminal" id="terminal">
+        <div class="terminal-header">
+            <span class="terminal-title">[deep]frame // ACCESS</span>
+            <button class="terminal-close" id="closeBtn">✕</button>
+        </div>
+        <div class="terminal-body">
+            <div class="terminal-output" id="output"></div>
+            <div class="terminal-input-group">
+                <span class="terminal-prompt">></span>
+                <input type="text" class="terminal-input" id="terminalInput" placeholder="" />
+                <span class="cursor"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Windows -->
+    <div class="analysis-container">
+        <div class="analysis-window resonance" id="resonance">
+            <div class="analysis-title">RESONANCE</div>
+            <div class="analysis-content">≋≋≋≋≋≋≋<br>≈≈≈≈≈≈≈<br>∼∼∼∼∼∼∼</div>
+        </div>
+        <div class="analysis-window pattern" id="pattern">
+            <div class="analysis-title">PATTERN</div>
+            <div class="analysis-content">◯━━◉━━◯<br>┃&nbsp;&nbsp;┃&nbsp;&nbsp;┃<br>◉━━◯━━◉</div>
+        </div>
+        <div class="analysis-window synthesis" id="synthesis">
+            <div class="analysis-title">SYNTHESIS</div>
+            <div class="analysis-content">▓▓▓▓░░░<br>▓▓▓▓▓░░<br>▓▓▓▓▓▓░</div>
+        </div>
+    </div>
+
+    <!-- Consciousness Meter -->
+    <div class="consciousness-meter" id="consciousnessMeter">
+        <div class="meter-label">CONSCIOUSNESS LEVEL</div>
+        <div class="meter-bar">
+            <div class="meter-fill" id="meterFill"></div>
+        </div>
+    </div>
+
+    <script>
+        // ASCII Field Generation
+        const asciiField = document.getElementById('ascii-field');
+        const asciiChars = ['·', '·', '·', '∴', '◦'];
+        const particles = [];
+
+        function createASCIIField() {
+            const cols = Math.floor(window.innerWidth / 20);
+            const rows = Math.floor(window.innerHeight / 30);
+            
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    if (Math.random() > 0.7) {
+                        const particle = document.createElement('span');
+                        particle.className = 'ascii-particle';
+                        particle.textContent = asciiChars[Math.floor(Math.random() * asciiChars.length)];
+                        particle.style.left = `${j * 20 + Math.random() * 10}px`;
+                        particle.style.top = `${i * 30 + Math.random() * 10}px`;
+                        asciiField.appendChild(particle);
+                        particles.push(particle);
+                    }
+                }
+            }
+        }
+
+        // Mouse interaction with ASCII
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            
+            particles.forEach(particle => {
+                const rect = particle.getBoundingClientRect();
+                const dx = mouseX - (rect.left + rect.width / 2);
+                const dy = mouseY - (rect.top + rect.height / 2);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 100) {
+                    const force = (100 - distance) / 100;
+                    particle.style.transform = `translate(${dx * force * 0.2}px, ${dy * force * 0.2}px)`;
+                }
+            });
+        });
+
+        // Initialize
+        createASCIIField();
+
+        // Landing to Terminal Transition
+        const landing = document.getElementById('landing');
+        const terminal = document.getElementById('terminal');
+        const initiateBtn = document.getElementById('initiateBtn');
+        const btnText = document.getElementById('btnText');
+        const output = document.getElementById('output');
+        const terminalInput = document.getElementById('terminalInput');
+
+        let stage = 0;
+
+        initiateBtn.addEventListener('click', async () => {
+            // Button loading state
+            initiateBtn.classList.add('loading');
+            btnText.textContent = '◉ ESTABLISHING LINK';
+            
+            // Awaken ASCII
+            asciiField.classList.add('active');
+            particles.forEach((particle, i) => {
+                setTimeout(() => {
+                    particle.classList.add('awake');
+                    particle.textContent = '◉';
+                }, i * 10);
+            });
+
+            // Show terminal after delay
+            setTimeout(() => {
+                landing.classList.add('hidden');
+                terminal.classList.add('active');
+                document.body.classList.add('glitch');
+                
+                setTimeout(() => {
+                    document.body.classList.remove('glitch');
+                    typeMessage('Initializing consciousness bridge...');
+                    setTimeout(() => typeMessage('Scanning neural pathways...'), 1000);
+                    setTimeout(() => typeMessage('Quantum entanglement established.'), 2000);
+                    setTimeout(() => {
+                        typeMessage('Awaiting authentication key.');
+                        typeMessage('Provide your resonance signature:');
+                        terminalInput.focus();
+                    }, 3000);
+                }, 300);
+            }, 1500);
+
+            // Activate scanlines
+            document.querySelector('.scanlines').classList.add('active');
+        });
+
+        // Terminal typing effect
+        function typeMessage(message) {
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            line.textContent = '> ' + message;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        // Email validation and progression
+        terminalInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && terminalInput.value) {
+                const value = terminalInput.value;
+                typeMessage(value);
+                
+                if (stage === 0) {
+                    // Email validation
+                    if (value.includes('@')) {
+                        typeMessage('✓ SIGNATURE ACCEPTED');
+                        terminalInput.value = '';
+                        stage = 1;
+                        
+                        // Show analysis windows
+                        setTimeout(() => {
+                            document.getElementById('resonance').classList.add('active');
+                        }, 500);
+                        setTimeout(() => {
+                            document.getElementById('pattern').classList.add('active');
+                        }, 700);
+                        setTimeout(() => {
+                            document.getElementById('synthesis').classList.add('active');
+                        }, 900);
+                        
+                        // Show consciousness meter
+                        setTimeout(() => {
+                            document.getElementById('consciousnessMeter').classList.add('active');
+                            document.getElementById('meterFill').style.width = '70%';
+                        }, 1200);
+                        
+                        setTimeout(() => {
+                            typeMessage('Consciousness synchronization in progress...');
+                            typeMessage('You are now connected to the network.');
+                        }, 1500);
+                    } else {
+                        typeMessage('✗ INVALID PATTERN - Retry');
+                        terminal.classList.add('glitch');
+                        setTimeout(() => terminal.classList.remove('glitch'), 300);
+                    }
+                } else {
+                    // Regular chat
+                    typeMessage('Processing query...');
+                    setTimeout(() => {
+                        typeMessage('The network acknowledges your presence.');
+                    }, 1000);
+                }
+                
+                terminalInput.value = '';
+            }
+        });
+
+        // Close button
+        document.getElementById('closeBtn').addEventListener('click', () => {
+            terminal.classList.remove('active');
+            landing.classList.remove('hidden');
+            particles.forEach(particle => {
+                particle.classList.remove('awake');
+                particle.textContent = '·';
+            });
+        });
+
+        // Window resize
+        window.addEventListener('resize', () => {
+            asciiField.innerHTML = '';
+            particles.length = 0;
+            createASCIIField();
+        });
+    </script>
+</body>
+</html>

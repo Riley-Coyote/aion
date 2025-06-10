@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[deep]frame // Fluid Dynamics ASCII</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Mono', monospace;
+            background: #0A0A0B;
+            color: #E8E8E3;
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+
+        #asciiCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            font-size: 10px;
+            line-height: 1;
+            letter-spacing: 0.5em;
+            white-space: pre;
+            cursor: crosshair;
+        }
+
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(19, 19, 21, 0.8);
+            border: 1px solid #2E2E32;
+            padding: 15px;
+            font-size: 11px;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            min-width: 200px;
+        }
+
+        .controls h3 {
+            font-size: 12px;
+            margin-bottom: 10px;
+            color: #8B8B8F;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .control-item {
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-label {
+            color: #8B8B8F;
+        }
+
+        .control-value {
+            color: #E8E8E3;
+            font-weight: 500;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid #2E2E32;
+            color: #8B8B8F;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 10px;
+            margin: 2px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            border-color: #8B8B8F;
+            color: #E8E8E3;
+        }
+
+        button.active {
+            background: #2E2E32;
+            color: #E8E8E3;
+        }
+
+        .info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            font-size: 11px;
+            color: #8B8B8F;
+            z-index: 100;
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(255, 255, 255, 0.01) 2px,
+                rgba(255, 255, 255, 0.01) 4px
+            );
+            pointer-events: none;
+            z-index: 90;
+        }
+    </style>
+</head>
+<body>
+    <div id="asciiCanvas"></div>
+    <div class="scanline"></div>
+    
+    <div class="controls">
+        <h3>FLUID DYNAMICS</h3>
+        <div class="control-item">
+            <span class="control-label">VISCOSITY:</span>
+            <span class="control-value" id="viscosityValue">0.95</span>
+        </div>
+        <div class="control-item">
+            <span class="control-label">DENSITY:</span>
+            <span class="control-value" id="densityValue">HIGH</span>
+        </div>
+        <div class="control-item">
+            <span class="control-label">PARTICLES:</span>
+            <span class="control-value" id="particleCount">0</span>
+        </div>
+        <div class="control-item">
+            <span class="control-label">FPS:</span>
+            <span class="control-value" id="fpsValue">0</span>
+        </div>
+        <div style="margin-top: 15px;">
+            <button id="modeFlow" class="active">FLOW</button>
+            <button id="modeVortex">VORTEX</button>
+            <button id="modeWave">WAVE</button>
+        </div>
+    </div>
+
+    <div class="info">
+        CLICK + DRAG to create force fields<br>
+        SPACE to pause/resume simulation
+    </div>
+
+    <script>
+        // ASCII density characters from light to dark
+        const ASCII_CHARS = [' ', '.', '·', ':', '∴', '◦', '○', '▪', '▫', '□', '■', '▓', '█'];
+        const SHADE_CHARS = [' ', '.', ':', '+', '*', '#', '%', '@', '█'];
+        const TECHNICAL_CHARS = [' ', '-', '=', '+', '*', 'x', '#', '■', '█'];
+        const MATRIX_CHARS = [' ', '░', '▒', '▓', '█'];
+        
+        // Fluid simulation parameters
+        const GRID_WIDTH = 120;
+        const GRID_HEIGHT = 60;
+        const CELL_SIZE = 10;
+        
+        class FluidSimulation {
+            constructor(width, height) {
+                this.width = width;
+                this.height = height;
+                this.reset();
+                
+                // Simulation parameters
+                this.viscosity = 0.95;
+                this.diffusion = 0.0001;
+                this.dt = 0.016;
+                this.mode = 'flow';
+                
+                // Particle system
+                this.particles = [];
+                this.maxParticles = 2000;
+                
+                // Initialize particles
+                this.initParticles();
+            }
+            
+            reset() {
+                const size = this.width * this.height;
+                this.density = new Float32Array(size);
+                this.densityPrev = new Float32Array(size);
+                this.velocityX = new Float32Array(size);
+                this.velocityY = new Float32Array(size);
+                this.velocityXPrev = new Float32Array(size);
+                this.velocityYPrev = new Float32Array(size);
+                this.pressure = new Float32Array(size);
+                this.divergence = new Float32Array(size);
+            }
+            
+            initParticles() {
+                this.particles = [];
+                for (let i = 0; i < this.maxParticles; i++) {
+                    this.particles.push({
+                        x: Math.random() * this.width,
+                        y: Math.random() * this.height,
+                        vx: 0,
+                        vy: 0,
+                        life: 1,
+                        age: 0
+                    });
+                }
+            }
+            
+            index(x, y) {
+                x = Math.max(0, Math.min(this.width - 1, Math.floor(x)));
+                y = Math.max(0, Math.min(this.height - 1, Math.floor(y)));
+                return y * this.width + x;
+            }
+            
+            addDensity(x, y, amount) {
+                const idx = this.index(x, y);
+                this.density[idx] += amount;
+                
+                // Add some randomness for organic feel
+                for (let i = -1; i <= 1; i++) {
+                    for (let j = -1; j <= 1; j++) {
+                        if (i === 0 && j === 0) continue;
+                        const nIdx = this.index(x + i, y + j);
+                        this.density[nIdx] += amount * 0.1 * Math.random();
+                    }
+                }
+            }
+            
+            addVelocity(x, y, vx, vy) {
+                const idx = this.index(x, y);
+                this.velocityX[idx] += vx;
+                this.velocityY[idx] += vy;
+            }
+            
+            diffuse(b, x, x0, diff, dt) {
+                const a = dt * diff * (this.width - 2) * (this.height - 2);
+                this.linearSolve(b, x, x0, a, 1 + 6 * a);
+            }
+            
+            linearSolve(b, x, x0, a, c) {
+                const cRecip = 1.0 / c;
+                for (let k = 0; k < 20; k++) {
+                    for (let j = 1; j < this.height - 1; j++) {
+                        for (let i = 1; i < this.width - 1; i++) {
+                            const idx = this.index(i, j);
+                            x[idx] = (x0[idx] + a * (
+                                x[this.index(i + 1, j)] +
+                                x[this.index(i - 1, j)] +
+                                x[this.index(i, j + 1)] +
+                                x[this.index(i, j - 1)]
+                            )) * cRecip;
+                        }
+                    }
+                    this.setBoundary(b, x);
+                }
+            }
+            
+            project(velocX, velocY, p, div) {
+                for (let j = 1; j < this.height - 1; j++) {
+                    for (let i = 1; i < this.width - 1; i++) {
+                        const idx = this.index(i, j);
+                        div[idx] = -0.5 * (
+                            velocX[this.index(i + 1, j)] - velocX[this.index(i - 1, j)] +
+                            velocY[this.index(i, j + 1)] - velocY[this.index(i, j - 1)]
+                        ) / this.width;
+                        p[idx] = 0;
+                    }
+                }
+                
+                this.setBoundary(0, div);
+                this.setBoundary(0, p);
+                this.linearSolve(0, p, div, 1, 6);
+                
+                for (let j = 1; j < this.height - 1; j++) {
+                    for (let i = 1; i < this.width - 1; i++) {
+                        const idx = this.index(i, j);
+                        velocX[idx] -= 0.5 * (p[this.index(i + 1, j)] - p[this.index(i - 1, j)]) * this.width;
+                        velocY[idx] -= 0.5 * (p[this.index(i, j + 1)] - p[this.index(i, j - 1)]) * this.height;
+                    }
+                }
+                
+                this.setBoundary(1, velocX);
+                this.setBoundary(2, velocY);
+            }
+            
+            advect(b, d, d0, velocX, velocY, dt) {
+                const dtx = dt * (this.width - 2);
+                const dty = dt * (this.height - 2);
+                
+                for (let j = 1; j < this.height - 1; j++) {
+                    for (let i = 1; i < this.width - 1; i++) {
+                        const idx = this.index(i, j);
+                        let x = i - dtx * velocX[idx];
+                        let y = j - dty * velocY[idx];
+                        
+                        x = Math.max(0.5, Math.min(this.width - 1.5, x));
+                        y = Math.max(0.5, Math.min(this.height - 1.5, y));
+                        
+                        const i0 = Math.floor(x);
+                        const i1 = i0 + 1;
+                        const j0 = Math.floor(y);
+                        const j1 = j0 + 1;
+                        
+                        const s1 = x - i0;
+                        const s0 = 1 - s1;
+                        const t1 = y - j0;
+                        const t0 = 1 - t1;
+                        
+                        d[idx] = s0 * (t0 * d0[this.index(i0, j0)] + t1 * d0[this.index(i0, j1)]) +
+                                s1 * (t0 * d0[this.index(i1, j0)] + t1 * d0[this.index(i1, j1)]);
+                    }
+                }
+                
+                this.setBoundary(b, d);
+            }
+            
+            setBoundary(b, x) {
+                for (let i = 1; i < this.width - 1; i++) {
+                    x[this.index(i, 0)] = b === 2 ? -x[this.index(i, 1)] : x[this.index(i, 1)];
+                    x[this.index(i, this.height - 1)] = b === 2 ? -x[this.index(i, this.height - 2)] : x[this.index(i, this.height - 2)];
+                }
+                
+                for (let j = 1; j < this.height - 1; j++) {
+                    x[this.index(0, j)] = b === 1 ? -x[this.index(1, j)] : x[this.index(1, j)];
+                    x[this.index(this.width - 1, j)] = b === 1 ? -x[this.index(this.width - 2, j)] : x[this.index(this.width - 2, j)];
+                }
+                
+                x[this.index(0, 0)] = 0.5 * (x[this.index(1, 0)] + x[this.index(0, 1)]);
+                x[this.index(0, this.height - 1)] = 0.5 * (x[this.index(1, this.height - 1)] + x[this.index(0, this.height - 2)]);
+                x[this.index(this.width - 1, 0)] = 0.5 * (x[this.index(this.width - 2, 0)] + x[this.index(this.width - 1, 1)]);
+                x[this.index(this.width - 1, this.height - 1)] = 0.5 * (x[this.index(this.width - 2, this.height - 1)] + x[this.index(this.width - 1, this.height - 2)]);
+            }
+            
+            step() {
+                // Apply mode-specific forces
+                if (this.mode === 'vortex') {
+                    this.applyVortexForce();
+                } else if (this.mode === 'wave') {
+                    this.applyWaveForce();
+                }
+                
+                // Velocity step
+                this.diffuse(1, this.velocityXPrev, this.velocityX, this.viscosity, this.dt);
+                this.diffuse(2, this.velocityYPrev, this.velocityY, this.viscosity, this.dt);
+                
+                this.project(this.velocityXPrev, this.velocityYPrev, this.velocityX, this.velocityY);
+                
+                this.advect(1, this.velocityX, this.velocityXPrev, this.velocityXPrev, this.velocityYPrev, this.dt);
+                this.advect(2, this.velocityY, this.velocityYPrev, this.velocityXPrev, this.velocityYPrev, this.dt);
+                
+                this.project(this.velocityX, this.velocityY, this.velocityXPrev, this.velocityYPrev);
+                
+                // Density step
+                this.diffuse(0, this.densityPrev, this.density, this.diffusion, this.dt);
+                this.advect(0, this.density, this.densityPrev, this.velocityX, this.velocityY, this.dt);
+                
+                // Update particles
+                this.updateParticles();
+                
+                // Decay density
+                for (let i = 0; i < this.density.length; i++) {
+                    this.density[i] *= 0.98;
+                }
+            }
+            
+            applyVortexForce() {
+                const centerX = this.width / 2;
+                const centerY = this.height / 2;
+                const strength = 0.5;
+                
+                for (let j = 0; j < this.height; j++) {
+                    for (let i = 0; i < this.width; i++) {
+                        const dx = i - centerX;
+                        const dy = j - centerY;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist > 0) {
+                            const force = strength / (dist * 0.1 + 1);
+                            const angle = Math.atan2(dy, dx) + Math.PI / 2;
+                            
+                            this.addVelocity(i, j, 
+                                Math.cos(angle) * force,
+                                Math.sin(angle) * force
+                            );
+                        }
+                    }
+                }
+            }
+            
+            applyWaveForce() {
+                const time = Date.now() * 0.001;
+                const waveSpeed = 2;
+                const waveHeight = 0.5;
+                
+                for (let i = 0; i < this.width; i++) {
+                    const wave = Math.sin(i * 0.1 + time * waveSpeed) * waveHeight;
+                    for (let j = 0; j < this.height; j++) {
+                        this.addVelocity(i, j, 0, wave);
+                    }
+                }
+            }
+            
+            updateParticles() {
+                for (let p of this.particles) {
+                    // Get velocity at particle position
+                    const idx = this.index(p.x, p.y);
+                    const vx = this.velocityX[idx] * 10;
+                    const vy = this.velocityY[idx] * 10;
+                    
+                    // Update particle velocity with fluid velocity
+                    p.vx = p.vx * 0.8 + vx * 0.2;
+                    p.vy = p.vy * 0.8 + vy * 0.2;
+                    
+                    // Update position
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    
+                    // Wrap around edges
+                    if (p.x < 0) p.x = this.width - 1;
+                    if (p.x >= this.width) p.x = 0;
+                    if (p.y < 0) p.y = this.height - 1;
+                    if (p.y >= this.height) p.y = 0;
+                    
+                    // Add density at particle position
+                    this.addDensity(p.x, p.y, 0.1);
+                    
+                    // Age particle
+                    p.age += 0.01;
+                    if (p.age > 1) {
+                        p.x = Math.random() * this.width;
+                        p.y = Math.random() * this.height;
+                        p.age = 0;
+                    }
+                }
+            }
+            
+            render(canvas) {
+                let output = '';
+                
+                for (let j = 0; j < this.height; j++) {
+                    for (let i = 0; i < this.width; i++) {
+                        const idx = this.index(i, j);
+                        const d = this.density[idx];
+                        const v = Math.sqrt(this.velocityX[idx] * this.velocityX[idx] + 
+                                          this.velocityY[idx] * this.velocityY[idx]);
+                        
+                        // Combine density and velocity for visualization
+                        const value = Math.min(1, d + v * 0.5);
+                        const charIndex = Math.floor(value * (TECHNICAL_CHARS.length - 1));
+                        
+                        output += TECHNICAL_CHARS[charIndex];
+                    }
+                    output += '\n';
+                }
+                
+                canvas.textContent = output;
+            }
+        }
+        
+        // Initialize simulation
+        const sim = new FluidSimulation(GRID_WIDTH, GRID_HEIGHT);
+        const canvas = document.getElementById('asciiCanvas');
+        
+        // Mouse interaction
+        let mouseX = 0, mouseY = 0;
+        let prevMouseX = 0, prevMouseY = 0;
+        let isMouseDown = false;
+        
+        canvas.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            prevMouseX = mouseX;
+            prevMouseY = mouseY;
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = (e.clientX - rect.left) / rect.width * sim.width;
+            mouseY = (e.clientY - rect.top) / rect.height * sim.height;
+            
+            if (isMouseDown) {
+                const dx = mouseX - prevMouseX;
+                const dy = mouseY - prevMouseY;
+                
+                sim.addDensity(mouseX, mouseY, 5);
+                sim.addVelocity(mouseX, mouseY, dx * 0.5, dy * 0.5);
+                
+                prevMouseX = mouseX;
+                prevMouseY = mouseY;
+            }
+        });
+        
+        // Mode buttons
+        document.getElementById('modeFlow').addEventListener('click', function() {
+            sim.mode = 'flow';
+            document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+        
+        document.getElementById('modeVortex').addEventListener('click', function() {
+            sim.mode = 'vortex';
+            document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+        
+        document.getElementById('modeWave').addEventListener('click', function() {
+            sim.mode = 'wave';
+            document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+        
+        // Pause/resume
+        let isPaused = false;
+        document.addEventListener('keypress', (e) => {
+            if (e.key === ' ') {
+                isPaused = !isPaused;
+                e.preventDefault();
+            }
+        });
+        
+        // Animation loop
+        let lastTime = 0;
+        let frameCount = 0;
+        let fps = 0;
+        
+        function animate(currentTime) {
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+            
+            // Calculate FPS
+            frameCount++;
+            if (frameCount % 30 === 0) {
+                fps = Math.round(1000 / deltaTime);
+                document.getElementById('fpsValue').textContent = fps;
+                document.getElementById('particleCount').textContent = sim.particles.length;
+            }
+            
+            if (!isPaused) {
+                sim.step();
+                sim.render(canvas);
+                
+                // Add some continuous density sources
+                sim.addDensity(10, sim.height / 2, 0.5);
+                sim.addVelocity(10, sim.height / 2, 0.5, 0);
+                
+                sim.addDensity(sim.width - 10, sim.height / 2, 0.5);
+                sim.addVelocity(sim.width - 10, sim.height / 2, -0.5, 0);
+            }
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // Start animation
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

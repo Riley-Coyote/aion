@@ -1,0 +1,1973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Resonance Interface</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary-white: #f5f5dc;
+            --warm-white: #faf8f0;
+            --organic-white: #f9f7ed;
+            --soft-white: #f7f6f1;
+            --cream-white: #fefefe;
+            --quantum-blue: #4a90e2;
+            --quantum-purple: #9c27b0;
+            --quantum-cyan: #64ffda;
+            --quantum-red: #ff4444;
+            --quantum-green: #00ff88;
+            --bg-black: #0a0a0a;
+            --panel-black: rgba(0, 0, 0, 0.85);
+        }
+        
+        body {
+            font-family: 'IBM Plex Mono', monospace;
+            background: 
+                radial-gradient(ellipse at 20% 30%, rgba(74, 144, 226, 0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 70%, rgba(156, 39, 176, 0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at center, var(--bg-black) 0%, #000000 100%);
+            color: var(--primary-white);
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+            font-weight: 300;
+        }
+        
+        /* Multi-Layer Background System */
+        .quantum-field-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: -1;
+            display: block;
+        }
+        
+        .quantum-field-deep {
+            z-index: -5;
+            opacity: 0.2;
+            filter: blur(1px);
+        }
+        
+        .quantum-field-mid {
+            z-index: -3;
+            opacity: 0.3;
+        }
+        
+        .quantum-field-near {
+            z-index: -2;
+            opacity: 0.4;
+        }
+        
+        /* Main Container */
+        .interface-container {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Enhanced Header */
+        .quantum-header {
+            padding: 20px 40px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px) saturate(150%);
+            border-bottom: 1px solid rgba(245, 245, 220, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: 400;
+            color: var(--warm-white);
+            text-shadow: 0 0 20px rgba(245, 245, 220, 0.5);
+            position: relative;
+            letter-spacing: 2px;
+        }
+        
+        .logo::before {
+            content: '⟨ψ|';
+            position: absolute;
+            left: -50px;
+            opacity: 0.8;
+            animation: quantumPulse 3s infinite ease-in-out;
+            color: var(--quantum-cyan);
+            filter: drop-shadow(0 0 10px var(--quantum-cyan));
+        }
+        
+        .logo::after {
+            content: '|φ⟩';
+            position: absolute;
+            right: -50px;
+            opacity: 0.8;
+            animation: quantumPulse 3s infinite ease-in-out 1.5s;
+            color: var(--quantum-cyan);
+            filter: drop-shadow(0 0 10px var(--quantum-cyan));
+        }
+        
+        .nav-menu {
+            display: flex;
+            gap: 25px;
+        }
+        
+        .nav-item {
+            padding: 12px 24px;
+            background: rgba(245, 245, 220, 0.05);
+            border: 1px solid rgba(245, 245, 220, 0.2);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            font-weight: 300;
+            letter-spacing: 1px;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(245, 245, 220, 0.15), transparent);
+            transition: left 0.6s ease;
+        }
+        
+        .nav-item:hover {
+            background: rgba(245, 245, 220, 0.1);
+            box-shadow: 0 0 25px rgba(245, 245, 220, 0.3);
+            transform: translateY(-2px);
+            border-color: rgba(245, 245, 220, 0.4);
+        }
+        
+        .nav-item:hover::before {
+            left: 100%;
+        }
+        
+        /* Main Content Grid */
+        .main-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 320px 1fr 320px;
+            gap: 20px;
+            padding: 20px;
+            height: calc(100vh - 80px);
+        }
+        
+        /* Enhanced Glass Panels */
+        .side-panel {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(15px) saturate(150%);
+            border: 1px solid rgba(245, 245, 220, 0.15);
+            border-radius: 15px;
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.4s ease;
+        }
+        
+        .side-panel:hover {
+            backdrop-filter: blur(20px) saturate(170%);
+            box-shadow: 0 0 30px rgba(245, 245, 220, 0.2), 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .side-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                var(--primary-white), 
+                var(--quantum-blue), 
+                var(--quantum-purple),
+                var(--quantum-cyan),
+                var(--primary-white)
+            );
+        }
+        
+        .panel-title {
+            font-size: 14px;
+            color: var(--warm-white);
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+            font-weight: 400;
+            padding-bottom: 15px;
+        }
+        
+        .panel-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary-white), transparent);
+        }
+        
+        /* Enhanced Controls */
+        .quantum-control {
+            margin: 20px 0;
+            padding: 18px;
+            background: rgba(245, 245, 220, 0.03);
+            border: 1px solid rgba(245, 245, 220, 0.1);
+            border-radius: 10px;
+            transition: all 0.4s ease;
+            position: relative;
+        }
+        
+        .quantum-control:hover {
+            background: rgba(245, 245, 220, 0.06);
+            border-color: rgba(245, 245, 220, 0.2);
+            transform: translateY(-1px);
+        }
+        
+        .control-label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 11px;
+            color: rgba(245, 245, 220, 0.8);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-weight: 400;
+        }
+        
+        .quantum-slider {
+            width: 100%;
+            height: 4px;
+            background: rgba(245, 245, 220, 0.2);
+            border-radius: 2px;
+            outline: none;
+            appearance: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .quantum-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: radial-gradient(circle, var(--primary-white), var(--soft-white));
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(245, 245, 220, 0.6);
+            transition: all 0.3s ease;
+        }
+        
+        .quantum-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 25px rgba(245, 245, 220, 0.8);
+        }
+        
+        .frequency-display {
+            background: rgba(245, 245, 220, 0.05);
+            border: 1px solid rgba(245, 245, 220, 0.15);
+            border-radius: 10px;
+            padding: 16px;
+            margin: 15px 0;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .frequency-display:hover {
+            background: rgba(245, 245, 220, 0.08);
+            border-color: rgba(245, 245, 220, 0.25);
+        }
+        
+        .frequency-value {
+            font-size: 18px;
+            color: var(--quantum-blue);
+            font-weight: 500;
+            text-shadow: 0 0 10px rgba(74, 144, 226, 0.4);
+        }
+        
+        .frequency-unit {
+            font-size: 12px;
+            color: rgba(245, 245, 220, 0.6);
+            margin-top: 5px;
+        }
+        
+        /* Central Visualization Core */
+        .visualization-core {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(15px) saturate(150%);
+            border: 1px solid rgba(245, 245, 220, 0.15);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .viz-header {
+            padding: 18px 25px;
+            background: rgba(0, 0, 0, 0.8);
+            border-bottom: 1px solid rgba(245, 245, 220, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .viz-title {
+            font-size: 16px;
+            color: var(--warm-white);
+            font-weight: 400;
+            letter-spacing: 1.2px;
+        }
+        
+        .viz-controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        /* Enhanced Mode Buttons */
+        .viz-button {
+            padding: 8px 14px;
+            background: rgba(74, 144, 226, 0.1);
+            border: 1px solid rgba(74, 144, 226, 0.3);
+            border-radius: 18px;
+            color: var(--quantum-blue);
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            font-family: inherit;
+            letter-spacing: 0.8px;
+            font-weight: 300;
+            text-transform: uppercase;
+            backdrop-filter: blur(5px);
+        }
+        
+        .viz-button:hover {
+            background: rgba(74, 144, 226, 0.2);
+            box-shadow: 0 0 20px rgba(74, 144, 226, 0.4);
+            transform: translateY(-1px);
+        }
+        
+        .viz-button.active {
+            background: rgba(74, 144, 226, 0.3);
+            box-shadow: 0 0 25px rgba(74, 144, 226, 0.6);
+            color: var(--cream-white);
+            border-color: var(--quantum-blue);
+        }
+        
+        /* Multi-Canvas System */
+        .visualization-canvas {
+            flex: 1;
+            position: relative;
+        }
+        
+        .quantum-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        .canvas-layer-background { z-index: 1; opacity: 0.6; }
+        .canvas-layer-field { z-index: 2; opacity: 0.8; }
+        .canvas-layer-main { z-index: 3; opacity: 1; }
+        .canvas-layer-effects { z-index: 4; opacity: 0.9; }
+        .canvas-layer-ui { z-index: 5; opacity: 1; }
+        
+        /* Enhanced Info Panel */
+        .info-panel {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-top: 1px solid rgba(245, 245, 220, 0.15);
+            backdrop-filter: blur(10px);
+        }
+        
+        .quantum-equation {
+            font-size: 18px;
+            text-align: center;
+            color: var(--quantum-blue);
+            margin-bottom: 15px;
+            text-shadow: 0 0 15px rgba(74, 144, 226, 0.5);
+            font-family: inherit;
+            font-weight: 300;
+            transition: all 0.3s ease;
+        }
+        
+        .quantum-equation:hover {
+            transform: scale(1.02);
+            text-shadow: 0 0 20px rgba(74, 144, 226, 0.7);
+        }
+        
+        .parameter-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .parameter-box {
+            background: rgba(245, 245, 220, 0.05);
+            border: 1px solid rgba(245, 245, 220, 0.15);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        
+        .parameter-box:hover {
+            background: rgba(245, 245, 220, 0.08);
+            border-color: rgba(245, 245, 220, 0.25);
+            transform: translateY(-2px);
+        }
+        
+        .param-label {
+            font-size: 10px;
+            color: rgba(245, 245, 220, 0.6);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .param-value {
+            font-size: 14px;
+            color: var(--primary-white);
+            font-weight: 500;
+        }
+        
+        /* Enhanced Animations */
+        @keyframes quantumPulse {
+            0%, 100% { 
+                opacity: 0.8; 
+                transform: scale(1) rotate(0deg); 
+                filter: drop-shadow(0 0 10px currentColor);
+            }
+            50% { 
+                opacity: 1; 
+                transform: scale(1.1) rotate(180deg); 
+                filter: drop-shadow(0 0 20px currentColor);
+            }
+        }
+        
+        @keyframes geometricMorph {
+            0% { 
+                border-radius: 50%; 
+                transform: rotate(0deg) scale(1);
+            }
+            25% { 
+                border-radius: 0%; 
+                transform: rotate(90deg) scale(1.1);
+            }
+            50% { 
+                border-radius: 30%; 
+                transform: rotate(180deg) scale(0.9);
+            }
+            75% { 
+                border-radius: 10%; 
+                transform: rotate(270deg) scale(1.05);
+            }
+            100% { 
+                border-radius: 50%; 
+                transform: rotate(360deg) scale(1);
+            }
+        }
+        
+        @keyframes fluidWave {
+            0%, 100% { 
+                transform: translateY(0) scaleY(1) skewX(0deg);
+            }
+            25% { 
+                transform: translateY(-10px) scaleY(0.8) skewX(2deg);
+            }
+            50% { 
+                transform: translateY(-5px) scaleY(1.2) skewX(-1deg);
+            }
+            75% { 
+                transform: translateY(-15px) scaleY(0.9) skewX(1deg);
+            }
+        }
+        
+        @keyframes cymaticRipple {
+            0% { 
+                transform: scale(0) rotate(0deg); 
+                opacity: 1;
+            }
+            50% { 
+                transform: scale(1.5) rotate(180deg); 
+                opacity: 0.6;
+            }
+            100% { 
+                transform: scale(3) rotate(360deg); 
+                opacity: 0;
+            }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 280px 1fr;
+                grid-template-rows: 1fr auto;
+            }
+            
+            .side-panel:last-child {
+                grid-column: 1 / -1;
+                height: 220px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr auto;
+                padding: 15px;
+            }
+            
+            .quantum-header {
+                padding: 15px 20px;
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .nav-menu {
+                margin-left: 0;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Multi-layer quantum field backgrounds -->
+    <canvas class="quantum-field-layer quantum-field-deep"></canvas>
+    <canvas class="quantum-field-layer quantum-field-mid"></canvas>
+    <canvas class="quantum-field-layer quantum-field-near"></canvas>
+    
+    <div class="interface-container">
+        <header class="quantum-header">
+            <div class="logo">QUANTUM RESONANCE</div>
+            <nav class="nav-menu">
+                <div class="nav-item">Research</div>
+                <div class="nav-item">Simulation</div>
+                <div class="nav-item">Protocol</div>
+                <div class="nav-item">Network</div>
+            </nav>
+        </header>
+        
+        <main class="main-content">
+            <aside class="side-panel">
+                <div class="panel-title">Wave Parameters</div>
+                
+                <div class="quantum-control">
+                    <label class="control-label">Frequency (ω)</label>
+                    <input type="range" class="quantum-slider" id="frequency" min="1" max="100" value="25">
+                    <div class="frequency-display">
+                        <div class="frequency-value" id="freq-display">25.0</div>
+                        <div class="frequency-unit">Hz</div>
+                    </div>
+                </div>
+                
+                <div class="quantum-control">
+                    <label class="control-label">Amplitude (A)</label>
+                    <input type="range" class="quantum-slider" id="amplitude" min="0.1" max="3" step="0.1" value="1.5">
+                    <div class="frequency-display">
+                        <div class="frequency-value" id="amp-display">1.5</div>
+                        <div class="frequency-unit">units</div>
+                    </div>
+                </div>
+                
+                <div class="quantum-control">
+                    <label class="control-label">Phase (φ)</label>
+                    <input type="range" class="quantum-slider" id="phase" min="0" max="6.28" step="0.1" value="0">
+                    <div class="frequency-display">
+                        <div class="frequency-value" id="phase-display">0.0</div>
+                        <div class="frequency-unit">radians</div>
+                    </div>
+                </div>
+                
+                <div class="quantum-control">
+                    <label class="control-label">Viscosity (η)</label>
+                    <input type="range" class="quantum-slider" id="viscosity" min="0.1" max="2" step="0.1" value="0.5">
+                    <div class="frequency-display">
+                        <div class="frequency-value" id="visc-display">0.5</div>
+                        <div class="frequency-unit">fluid</div>
+                    </div>
+                </div>
+            </aside>
+            
+            <section class="visualization-core">
+                <div class="viz-header">
+                    <div class="viz-title">Quantum State Evolution</div>
+                    <div class="viz-controls">
+                        <button class="viz-button active" data-mode="cymatics">Cymatics</button>
+                        <button class="viz-button" data-mode="resonance">Resonance</button>
+                        <button class="viz-button" data-mode="morphing">Morphing</button>
+                        <button class="viz-button" data-mode="interference">Interference</button>
+                        <button class="viz-button" data-mode="entanglement">Entanglement</button>
+                        <button class="viz-button" data-mode="blackhole">Black Hole</button>
+                        <button class="viz-button" data-mode="tunneling">Tunneling</button>
+                        <button class="viz-button" data-mode="gravity">Gravity</button>
+                    </div>
+                </div>
+                
+                <div class="visualization-canvas">
+                    <canvas class="quantum-canvas canvas-layer-background" id="backgroundCanvas"></canvas>
+                    <canvas class="quantum-canvas canvas-layer-field" id="fieldCanvas"></canvas>
+                    <canvas class="quantum-canvas canvas-layer-main" id="mainCanvas"></canvas>
+                    <canvas class="quantum-canvas canvas-layer-effects" id="effectsCanvas"></canvas>
+                    <canvas class="quantum-canvas canvas-layer-ui" id="uiCanvas"></canvas>
+                </div>
+                
+                <div class="info-panel">
+                    <div class="quantum-equation" id="equation">∇²ψ = (1/c²)(∂²ψ/∂t²) + ρf(ω)</div>
+                    <div class="parameter-grid">
+                        <div class="parameter-box">
+                            <div class="param-label">Frequency</div>
+                            <div class="param-value" id="display-freq">25.0 Hz</div>
+                        </div>
+                        <div class="parameter-box">
+                            <div class="param-label">Wavelength</div>
+                            <div class="param-value" id="wavelength">13.7 cm</div>
+                        </div>
+                        <div class="parameter-box">
+                            <div class="param-label">Resonance</div>
+                            <div class="param-value" id="resonance-strength">0.847</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <aside class="side-panel">
+                <div class="panel-title">Cymatic Analysis</div>
+                
+                <div class="quantum-control">
+                    <label class="control-label">Surface Tension</label>
+                    <div class="frequency-display">
+                        <div class="frequency-value" id="surface-tension">72.8</div>
+                        <div class="frequency-unit">mN/m</div>
+                    </div>
+                </div>
+                
+                <div class="quantum-control">
+                    <label class="control-label">Node Count</label>
+                    <div class="frequency-display">
+                        <div class="frequency-value" id="node-count">12</div>
+                        <div class="frequency-unit">points</div>
+                    </div>
+                </div>
+                
+                <div class="quantum-control">
+                    <label class="control-label">Pattern Type</label>
+                    <div class="frequency-display">
+                        <div class="frequency-value" id="pattern-type">Radial</div>
+                        <div class="frequency-unit">mode</div>
+                    </div>
+                </div>
+                
+                <div class="quantum-control">
+                    <label class="control-label">Fluid Depth</label>
+                    <input type="range" class="quantum-slider" id="depth" min="1" max="10" step="0.5" value="3">
+                    <div class="frequency-display">
+                        <div class="frequency-value" id="depth-display">3.0</div>
+                        <div class="frequency-unit">mm</div>
+                    </div>
+                </div>
+                
+                <div class="quantum-control">
+                    <label class="control-label">Drive Strength</label>
+                    <input type="range" class="quantum-slider" id="drive" min="0.1" max="2" step="0.1" value="1">
+                    <div class="frequency-display">
+                        <div class="frequency-value" id="drive-display">1.0</div>
+                        <div class="frequency-unit">power</div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script>
+        // Enhanced Canvas Management System
+        const canvases = {
+            background: document.getElementById('backgroundCanvas'),
+            field: document.getElementById('fieldCanvas'),
+            main: document.getElementById('mainCanvas'),
+            effects: document.getElementById('effectsCanvas'),
+            ui: document.getElementById('uiCanvas')
+        };
+        
+        // Ensure all canvases exist before getting contexts
+        const contexts = {};
+        Object.keys(canvases).forEach(key => {
+            if (canvases[key]) {
+                contexts[key] = canvases[key].getContext('2d');
+                console.log(`Canvas ${key} initialized:`, canvases[key].width, 'x', canvases[key].height);
+            } else {
+                console.error(`Canvas ${key} not found!`);
+            }
+        });
+        
+        // Multi-layer field canvases
+        const fieldLayers = document.querySelectorAll('.quantum-field-layer');
+        const fieldContexts = Array.from(fieldLayers).map(canvas => canvas.getContext('2d'));
+        
+        let animationId;
+        let time = 0;
+        let currentMode = 'cymatics';
+        
+        // Enhanced Physics Parameters
+        let params = {
+            frequency: 25,
+            amplitude: 1.5,
+            phase: 0,
+            viscosity: 0.5,
+            depth: 3,
+            drive: 1,
+            // Fluid simulation
+            waterParticles: [],
+            waveField: [],
+            gridSize: 8
+        };
+        
+        // Cymatic Pattern Generator
+        class CymaticSimulator {
+            constructor(width, height) {
+                this.width = width;
+                this.height = height;
+                this.gridWidth = Math.floor(width / params.gridSize);
+                this.gridHeight = Math.floor(height / params.gridSize);
+                this.field = new Array(this.gridWidth * this.gridHeight).fill(0);
+                this.velocity = new Array(this.gridWidth * this.gridHeight).fill(0);
+                this.dampening = 0.99;
+            }
+            
+            update() {
+                const centerX = Math.floor(this.gridWidth / 2);
+                const centerY = Math.floor(this.gridHeight / 2);
+                
+                // Drive the center based on frequency and amplitude
+                const driveForce = Math.sin(time * params.frequency * 0.01) * params.amplitude * params.drive;
+                const centerIndex = centerY * this.gridWidth + centerX;
+                this.field[centerIndex] = driveForce;
+                
+                // Wave propagation with cymatic physics
+                for (let y = 1; y < this.gridHeight - 1; y++) {
+                    for (let x = 1; x < this.gridWidth - 1; x++) {
+                        const index = y * this.gridWidth + x;
+                        
+                        // Get neighboring values
+                        const left = this.field[index - 1];
+                        const right = this.field[index + 1];
+                        const up = this.field[index - this.gridWidth];
+                        const down = this.field[index + this.gridWidth];
+                        const current = this.field[index];
+                        
+                        // Wave equation with frequency-dependent behavior
+                        const laplacian = (left + right + up + down - 4 * current);
+                        const waveSpeed = 0.5 + (params.frequency / 100) * 0.3;
+                        
+                        this.velocity[index] += laplacian * waveSpeed;
+                        this.velocity[index] *= this.dampening * (1 - params.viscosity * 0.1);
+                        
+                        // Apply frequency-dependent standing wave patterns
+                        const distanceFromCenter = Math.sqrt(
+                            Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
+                        );
+                        
+                        const resonanceFreq = params.frequency * 0.1;
+                        const standingWave = Math.cos(distanceFromCenter * resonanceFreq + params.phase);
+                        
+                        this.velocity[index] += standingWave * 0.02 * params.amplitude;
+                    }
+                }
+                
+                // Update field positions
+                for (let i = 0; i < this.field.length; i++) {
+                    this.field[i] += this.velocity[i];
+                }
+            }
+            
+            getHeightAt(x, y) {
+                const gridX = Math.floor(x / params.gridSize);
+                const gridY = Math.floor(y / params.gridSize);
+                
+                if (gridX >= 0 && gridX < this.gridWidth && gridY >= 0 && gridY < this.gridHeight) {
+                    return this.field[gridY * this.gridWidth + gridX];
+                }
+                return 0;
+            }
+        }
+        
+        let cymaticSim;
+        
+        function resizeCanvases() {
+            // Field layer canvases - ensure they fill the entire viewport
+            fieldLayers.forEach(canvas => {
+                canvas.width = window.innerWidth * 2;
+                canvas.height = window.innerHeight * 2;
+                canvas.style.width = window.innerWidth + 'px';
+                canvas.style.height = window.innerHeight + 'px';
+                const ctx = canvas.getContext('2d');
+                ctx.scale(2, 2);
+            });
+            
+            // Main visualization canvases - simpler approach
+            Object.values(canvases).forEach(canvas => {
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+                // Remove the scaling for now to fix visibility
+                // canvas.getContext('2d').scale(2, 2);
+            });
+            
+            // Initialize cymatic simulator
+            const rect = canvases.main.getBoundingClientRect();
+            cymaticSim = new CymaticSimulator(rect.width, rect.height);
+        }
+        
+        // Enhanced Multi-Layer Quantum Field Rendering
+        function drawQuantumFields() {
+            fieldContexts.forEach((ctx, layerIndex) => {
+                const canvas = ctx.canvas;
+                const w = canvas.width / 2;
+                const h = canvas.height / 2;
+                
+                ctx.clearRect(0, 0, w, h);
+                
+                const depth = layerIndex + 1;
+                const speed = 0.0003 * depth;
+                const intensity = 0.2 / depth;
+                
+                // Enhanced quantum vacuum fluctuations
+                for (let i = 0; i < 8 / depth; i++) {
+                    const offsetX = Math.sin(time * speed + i * 0.8) * (150 + depth * 80);
+                    const offsetY = Math.cos(time * speed + i * 0.8) * (120 + depth * 60);
+                    const centerX = w / 2 + offsetX;
+                    const centerY = h / 2 + offsetY;
+                    
+                    ctx.strokeStyle = `rgba(245, 245, 220, ${intensity * (1 - i * 0.08)})`;
+                    ctx.lineWidth = 0.8 / depth;
+                    
+                    for (let r = 20; r < 600; r += 25 + depth * 8) {
+                        const fluctuation = Math.sin(time * 0.001 * depth + r * 0.004) * (8 + depth * 3);
+                        const morphing = Math.cos(time * 0.0015 + r * 0.002) * 2;
+                        
+                        ctx.beginPath();
+                        ctx.arc(centerX, centerY, r + fluctuation + morphing, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                }
+                
+                // Fluid-like field lines
+                ctx.strokeStyle = `rgba(100, 255, 218, ${intensity * 0.3})`;
+                ctx.lineWidth = 0.5;
+                
+                for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / (12 - depth)) {
+                    const length = Math.min(w, h) / (2.2 - depth * 0.1);
+                    const fluidCurve = Math.sin(time * speed * 3 + angle * 5) * (25 + depth * 15);
+                    const centerX = w / 2;
+                    const centerY = h / 2;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    
+                    // Create fluid, morphing curves
+                    for (let r = 0; r <= length; r += 10) {
+                        const curve = Math.sin(r * 0.01 + time * speed * 2) * fluidCurve;
+                        const x = centerX + r * Math.cos(angle) + curve;
+                        const y = centerY + r * Math.sin(angle) + curve * 0.7;
+                        ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+            });
+        }
+        
+        // Main Visualization Dispatcher
+        function drawMainVisualization() {
+            // Clear all canvas layers properly
+            Object.values(contexts).forEach(ctx => {
+                const canvas = ctx.canvas;
+                const rect = canvas.getBoundingClientRect();
+                ctx.clearRect(0, 0, rect.width, rect.height);
+            });
+            
+            // Get actual canvas dimensions
+            const rect = canvases.main.getBoundingClientRect();
+            const w = rect.width;
+            const h = rect.height;
+            
+            switch(currentMode) {
+                case 'cymatics':
+                    drawCymaticPattern(w, h);
+                    break;
+                case 'resonance':
+                    drawEnhancedResonance(w, h);
+                    break;
+                case 'morphing':
+                    drawGeometricMorphing(w, h);
+                    break;
+                case 'interference':
+                    drawFluidInterference(w, h);
+                    break;
+                case 'entanglement':
+                    drawDynamicEntanglement(w, h);
+                    break;
+                case 'blackhole':
+                    drawMorphingBlackHole(w, h);
+                    break;
+                case 'tunneling':
+                    drawFluidTunneling(w, h);
+                    break;
+                case 'gravity':
+                    drawFluidGravity(w, h);
+                    break;
+            }
+        }
+        
+        function drawCymaticPattern(w, h) {
+            const mainCtx = contexts.main;
+            
+            if (!mainCtx) return;
+            
+            // Clear and test basic drawing
+            mainCtx.clearRect(0, 0, w, h);
+            
+            // Simple background test
+            mainCtx.fillStyle = 'rgba(74, 144, 226, 0.2)';
+            mainCtx.fillRect(0, 0, w, h);
+            
+            const centerX = w / 2;
+            const centerY = h / 2;
+            
+            // Draw central oscillator
+            mainCtx.fillStyle = '#f5f5dc';
+            mainCtx.beginPath();
+            mainCtx.arc(centerX, centerY, 20, 0, Math.PI * 2);
+            mainCtx.fill();
+            
+            // Simple cymatic rings
+            mainCtx.strokeStyle = 'rgba(100, 255, 218, 0.8)';
+            mainCtx.lineWidth = 2;
+            
+            for (let ring = 1; ring <= 8; ring++) {
+                const radius = ring * 30;
+                const phase = params.frequency * time * 0.01 + ring * 0.5;
+                const amplitude = Math.sin(phase) * params.amplitude;
+                const alpha = Math.abs(amplitude) * 0.8;
+                
+                if (alpha > 0.2) {
+                    mainCtx.globalAlpha = alpha;
+                    mainCtx.beginPath();
+                    mainCtx.arc(centerX, centerY, radius + amplitude * 10, 0, Math.PI * 2);
+                    mainCtx.stroke();
+                }
+            }
+            mainCtx.globalAlpha = 1;
+            
+            // Frequency-based pattern
+            const spokes = Math.floor(params.frequency / 5) + 4;
+            mainCtx.strokeStyle = 'rgba(245, 245, 220, 0.6)';
+            mainCtx.lineWidth = 1;
+            
+            for (let i = 0; i < spokes; i++) {
+                const angle = (i / spokes) * Math.PI * 2;
+                const wave = Math.sin(time * 0.02 + i) * 20;
+                const length = 80 + wave;
+                
+                mainCtx.beginPath();
+                mainCtx.moveTo(centerX, centerY);
+                mainCtx.lineTo(
+                    centerX + length * Math.cos(angle),
+                    centerY + length * Math.sin(angle)
+                );
+                mainCtx.stroke();
+            }
+            
+            // Add some particles for visual interest
+            for (let i = 0; i < 20; i++) {
+                const angle = (i / 20) * Math.PI * 2;
+                const r = 60 + Math.sin(time * 0.03 + i) * 20;
+                const x = centerX + r * Math.cos(angle + time * 0.01);
+                const y = centerY + r * Math.sin(angle + time * 0.01);
+                
+                mainCtx.fillStyle = `rgba(100, 255, 218, ${0.3 + Math.sin(time * 0.02 + i) * 0.3})`;
+                mainCtx.beginPath();
+                mainCtx.arc(x, y, 2, 0, Math.PI * 2);
+                mainCtx.fill();
+            }
+        }
+        
+        function drawCymaticShapes(centerX, centerY, ctx) {
+            const freq = params.frequency;
+            
+            // Different patterns based on frequency ranges
+            if (freq < 30) {
+                // Low frequency - simple radial patterns
+                drawRadialPattern(centerX, centerY, ctx, 6);
+            } else if (freq < 60) {
+                // Medium frequency - square patterns
+                drawSquarePattern(centerX, centerY, ctx);
+            } else {
+                // High frequency - complex polygonal patterns
+                drawPolygonalPattern(centerX, centerY, ctx, Math.floor(freq / 10));
+            }
+        }
+        
+        function drawRadialPattern(centerX, centerY, ctx, spokes) {
+            ctx.strokeStyle = 'rgba(245, 245, 220, 0.6)';
+            ctx.lineWidth = 1;
+            
+            for (let i = 0; i < spokes; i++) {
+                const angle = (i / spokes) * Math.PI * 2;
+                const waveModulation = Math.sin(time * 0.01 * params.frequency + i);
+                const length = 60 + waveModulation * 20;
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(
+                    centerX + length * Math.cos(angle),
+                    centerY + length * Math.sin(angle)
+                );
+                ctx.stroke();
+            }
+        }
+        
+        function drawSquarePattern(centerX, centerY, ctx) {
+            const size = 40 + Math.sin(time * 0.02) * 10;
+            const rotation = time * 0.01;
+            
+            ctx.strokeStyle = 'rgba(245, 245, 220, 0.7)';
+            ctx.lineWidth = 2;
+            
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(rotation);
+            
+            for (let i = 0; i < 3; i++) {
+                const s = size + i * 25;
+                ctx.strokeRect(-s/2, -s/2, s, s);
+            }
+            
+            ctx.restore();
+        }
+        
+        function drawPolygonalPattern(centerX, centerY, ctx, sides) {
+            const radius = 50;
+            const rotation = time * 0.008;
+            
+            ctx.strokeStyle = 'rgba(245, 245, 220, 0.8)';
+            ctx.lineWidth = 2;
+            
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(rotation);
+            
+            for (let layer = 0; layer < 3; layer++) {
+                const r = radius + layer * 20;
+                const wave = Math.sin(time * 0.02 + layer) * 5;
+                
+                ctx.beginPath();
+                for (let i = 0; i <= sides; i++) {
+                    const angle = (i / sides) * Math.PI * 2;
+                    const x = (r + wave) * Math.cos(angle);
+                    const y = (r + wave) * Math.sin(angle);
+                    
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+        }
+        
+        function drawEnhancedResonance(w, h) {
+            const mainCtx = contexts.main;
+            const effectsCtx = contexts.effects;
+            
+            const centerX = w / 2;
+            const centerY = h / 2;
+            
+            // Simple background to ensure visibility
+            mainCtx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            mainCtx.fillRect(0, 0, w, h);
+            
+            // Dynamic resonator with morphing geometry
+            const morphPhase = time * 0.005;
+            const morphAmount = 0.3;
+            
+            mainCtx.strokeStyle = '#f5f5dc';
+            mainCtx.lineWidth = 3;
+            mainCtx.shadowColor = 'rgba(245, 245, 220, 0.6)';
+            mainCtx.shadowBlur = 12;
+            
+            // Morphing central resonator
+            mainCtx.beginPath();
+            for (let angle = 0; angle < Math.PI * 2; angle += 0.1) {
+                const baseRadius = 50;
+                const morph = Math.sin(angle * 3 + morphPhase) * morphAmount;
+                const r = baseRadius + morph * 15;
+                
+                const x = centerX + r * Math.cos(angle);
+                const y = centerY + r * Math.sin(angle);
+                
+                if (angle === 0) mainCtx.moveTo(x, y);
+                else mainCtx.lineTo(x, y);
+            }
+            mainCtx.closePath();
+            mainCtx.stroke();
+            mainCtx.shadowBlur = 0;
+            
+            // Enhanced harmonic resonance visualization with fluid motion
+            for (let harmonic = 1; harmonic <= 8; harmonic++) {
+                const radius = 50 + harmonic * 25;
+                const frequency = params.frequency * harmonic * 0.5;
+                const amplitude = params.amplitude / Math.sqrt(harmonic);
+                const phase = frequency * time * 0.008 - harmonic * 0.3;
+                
+                // Fluid standing wave pattern
+                const waveAmplitude = amplitude * Math.sin(phase);
+                const alpha = Math.abs(waveAmplitude) * 0.7;
+                
+                effectsCtx.strokeStyle = `rgba(74, 144, 226, ${alpha})`;
+                effectsCtx.lineWidth = 4 - harmonic * 0.3;
+                
+                // Create fluid, morphing resonance rings
+                effectsCtx.beginPath();
+                for (let angle = 0; angle < Math.PI * 2; angle += 0.05) {
+                    const fluidWave = Math.sin(angle * harmonic * 2 + phase) * 8;
+                    const r = radius + waveAmplitude * 12 + fluidWave;
+                    
+                    const x = centerX + r * Math.cos(angle);
+                    const y = centerY + r * Math.sin(angle);
+                    
+                    if (angle === 0) effectsCtx.moveTo(x, y);
+                    else effectsCtx.lineTo(x, y);
+                }
+                effectsCtx.closePath();
+                effectsCtx.stroke();
+                
+                // Dynamic resonance nodes
+                if (harmonic <= 4) {
+                    const nodeCount = harmonic * 3;
+                    for (let node = 0; node < nodeCount; node++) {
+                        const nodeAngle = (node / nodeCount) * Math.PI * 2 + phase * 0.1;
+                        const nodeRadius = radius + waveAmplitude * 12;
+                        const nodeX = centerX + nodeRadius * Math.cos(nodeAngle);
+                        const nodeY = centerY + nodeRadius * Math.sin(nodeAngle);
+                        
+                        // Pulsing nodes with geometric morphing
+                        const pulse = Math.sin(time * 0.03 + node) * 0.5 + 0.5;
+                        
+                        effectsCtx.fillStyle = `rgba(245, 245, 220, ${alpha * 0.9})`;
+                        effectsCtx.shadowColor = 'rgba(245, 245, 220, 0.8)';
+                        effectsCtx.shadowBlur = 6;
+                        effectsCtx.beginPath();
+                        effectsCtx.arc(nodeX, nodeY, 3 + pulse * 3, 0, Math.PI * 2);
+                        effectsCtx.fill();
+                        effectsCtx.shadowBlur = 0;
+                    }
+                }
+            }
+        }
+        
+        function drawGeometricMorphing(w, h) {
+            const mainCtx = contexts.main;
+            const effectsCtx = contexts.effects;
+            
+            const centerX = w / 2;
+            const centerY = h / 2;
+            
+            // Morphing geometric shapes based on frequency
+            const shapes = [
+                { sides: 3, radius: 60, phase: 0 },
+                { sides: 4, radius: 80, phase: Math.PI / 4 },
+                { sides: 6, radius: 100, phase: Math.PI / 2 },
+                { sides: 8, radius: 120, phase: 3 * Math.PI / 4 }
+            ];
+            
+            shapes.forEach((shape, index) => {
+                const morphPhase = time * 0.008 + shape.phase;
+                const freqMod = params.frequency * 0.01;
+                
+                // Calculate morphing between polygon and circle
+                const morphAmount = Math.sin(morphPhase + freqMod) * 0.5 + 0.5;
+                
+                mainCtx.strokeStyle = `hsl(${200 + index * 40}, 70%, 60%)`;
+                mainCtx.lineWidth = 3 - index * 0.3;
+                mainCtx.shadowColor = mainCtx.strokeStyle;
+                mainCtx.shadowBlur = 8;
+                
+                mainCtx.beginPath();
+                
+                for (let i = 0; i <= shape.sides * 8; i++) {
+                    const t = i / (shape.sides * 8);
+                    const angle = t * Math.PI * 2;
+                    
+                    // Polygon vertices
+                    const polygonAngle = Math.floor(t * shape.sides) / shape.sides * Math.PI * 2;
+                    const polygonX = Math.cos(polygonAngle);
+                    const polygonY = Math.sin(polygonAngle);
+                    
+                    // Circle point
+                    const circleX = Math.cos(angle);
+                    const circleY = Math.sin(angle);
+                    
+                    // Morph between polygon and circle
+                    const x = centerX + shape.radius * (polygonX * (1 - morphAmount) + circleX * morphAmount);
+                    const y = centerY + shape.radius * (polygonY * (1 - morphAmount) + circleY * morphAmount);
+                    
+                    // Add amplitude modulation
+                    const ampMod = 1 + Math.sin(angle * 3 + time * 0.02) * params.amplitude * 0.1;
+                    const finalX = centerX + (x - centerX) * ampMod;
+                    const finalY = centerY + (y - centerY) * ampMod;
+                    
+                    if (i === 0) mainCtx.moveTo(finalX, finalY);
+                    else mainCtx.lineTo(finalX, finalY);
+                }
+                
+                mainCtx.closePath();
+                mainCtx.stroke();
+                mainCtx.shadowBlur = 0;
+                
+                // Morphing particles at vertices
+                for (let i = 0; i < shape.sides; i++) {
+                    const vertexAngle = (i / shape.sides) * Math.PI * 2 + morphPhase;
+                    const vertexX = centerX + shape.radius * Math.cos(vertexAngle);
+                    const vertexY = centerY + shape.radius * Math.sin(vertexAngle);
+                    
+                    const pulse = Math.sin(time * 0.04 + i + index) * 0.3 + 0.7;
+                    
+                    effectsCtx.fillStyle = `hsla(${200 + index * 40}, 70%, 70%, ${pulse})`;
+                    effectsCtx.shadowColor = effectsCtx.fillStyle;
+                    effectsCtx.shadowBlur = 10;
+                    effectsCtx.beginPath();
+                    effectsCtx.arc(vertexX, vertexY, 4 + pulse * 4, 0, Math.PI * 2);
+                    effectsCtx.fill();
+                    effectsCtx.shadowBlur = 0;
+                }
+            });
+            
+            // Central morphing core
+            const corePhase = time * 0.01;
+            const coreSize = 20 + Math.sin(corePhase) * 8;
+            const coreRotation = time * 0.02;
+            
+            mainCtx.save();
+            mainCtx.translate(centerX, centerY);
+            mainCtx.rotate(coreRotation);
+            
+            mainCtx.fillStyle = 'rgba(245, 245, 220, 0.8)';
+            mainCtx.shadowColor = 'rgba(245, 245, 220, 0.9)';
+            mainCtx.shadowBlur = 15;
+            
+            // Morphing between square and circle
+            const coreMorph = Math.sin(corePhase * 2) * 0.5 + 0.5;
+            if (coreMorph < 0.5) {
+                // Square
+                mainCtx.fillRect(-coreSize/2, -coreSize/2, coreSize, coreSize);
+            } else {
+                // Circle
+                mainCtx.beginPath();
+                mainCtx.arc(0, 0, coreSize/2, 0, Math.PI * 2);
+                mainCtx.fill();
+            }
+            
+            mainCtx.restore();
+            mainCtx.shadowBlur = 0;
+        }
+        
+        function drawFluidInterference(w, h) {
+            const mainCtx = contexts.main;
+            const effectsCtx = contexts.effects;
+            
+            const source1X = w * 0.25;
+            const source2X = w * 0.75;
+            const sourceY = h * 0.5;
+            
+            // Fluid wave sources with morphing
+            const pulse1 = Math.sin(time * 0.02) * 0.3 + 0.7;
+            const pulse2 = Math.sin(time * 0.02 + Math.PI) * 0.3 + 0.7;
+            
+            mainCtx.fillStyle = `rgba(245, 245, 220, ${pulse1})`;
+            mainCtx.shadowColor = 'rgba(245, 245, 220, 0.8)';
+            mainCtx.shadowBlur = 15;
+            mainCtx.beginPath();
+            mainCtx.arc(source1X, sourceY, 12 * pulse1, 0, Math.PI * 2);
+            mainCtx.fill();
+            
+            mainCtx.fillStyle = `rgba(245, 245, 220, ${pulse2})`;
+            mainCtx.beginPath();
+            mainCtx.arc(source2X, sourceY, 12 * pulse2, 0, Math.PI * 2);
+            mainCtx.fill();
+            mainCtx.shadowBlur = 0;
+            
+            // Fluid interference calculation with enhanced resolution
+            const interference = mainCtx.createImageData(w, h);
+            const data = interference.data;
+            
+            for (let x = 0; x < w; x += 2) {
+                for (let y = 0; y < h; y += 2) {
+                    const d1 = Math.sqrt((x - source1X) ** 2 + (y - sourceY) ** 2);
+                    const d2 = Math.sqrt((x - source2X) ** 2 + (y - sourceY) ** 2);
+                    
+                    // Enhanced wave calculation with fluid properties
+                    const wavelength = 50 / params.frequency;
+                    const k = 2 * Math.PI / wavelength;
+                    
+                    const wave1 = params.amplitude * Math.exp(-d1 * 0.008) * 
+                                 Math.sin(k * d1 - params.frequency * time * 0.01 + params.phase);
+                    const wave2 = params.amplitude * Math.exp(-d2 * 0.008) * 
+                                 Math.sin(k * d2 - params.frequency * time * 0.01);
+                    
+                    // Fluid interference with viscosity effects
+                    const totalWave = wave1 + wave2;
+                    const viscosityDamping = 1 - params.viscosity * 0.3;
+                    const fluidWave = totalWave * viscosityDamping;
+                    
+                    const intensity = Math.abs(fluidWave);
+                    
+                    if (intensity > 0.2) {
+                        const pixelIndex = (y * w + x) * 4;
+                        
+                        // Enhanced color mapping
+                        if (fluidWave > 0) {
+                            data[pixelIndex] = Math.min(255, intensity * 150);     // Red
+                            data[pixelIndex + 1] = Math.min(255, intensity * 200); // Green
+                            data[pixelIndex + 2] = 255;                           // Blue
+                        } else {
+                            data[pixelIndex] = 255;                               // Red
+                            data[pixelIndex + 1] = Math.min(255, intensity * 150); // Green
+                            data[pixelIndex + 2] = Math.min(255, intensity * 200); // Blue
+                        }
+                        data[pixelIndex + 3] = Math.min(255, intensity * 120); // Alpha
+                    }
+                }
+            }
+            
+            mainCtx.putImageData(interference, 0, 0);
+            
+            // Fluid streamlines
+            effectsCtx.strokeStyle = 'rgba(100, 255, 218, 0.6)';
+            effectsCtx.lineWidth = 1;
+            
+            for (let i = 0; i < 8; i++) {
+                const streamY = sourceY + (i - 4) * 15;
+                const flowSpeed = time * 0.02;
+                
+                effectsCtx.beginPath();
+                for (let x = 0; x < w; x += 3) {
+                    const d1 = Math.sqrt((x - source1X) ** 2 + (streamY - sourceY) ** 2);
+                    const d2 = Math.sqrt((x - source2X) ** 2 + (streamY - sourceY) ** 2);
+                    
+                    const flow1 = Math.sin(d1 * 0.1 - flowSpeed) * 8;
+                    const flow2 = Math.sin(d2 * 0.1 - flowSpeed) * 8;
+                    const totalFlow = (flow1 + flow2) * (1 - params.viscosity * 0.5);
+                    
+                    const y = streamY + totalFlow;
+                    
+                    if (x === 0) effectsCtx.moveTo(x, y);
+                    else effectsCtx.lineTo(x, y);
+                }
+                effectsCtx.stroke();
+            }
+        }
+        
+        function drawDynamicEntanglement(w, h) {
+            const mainCtx = contexts.main;
+            const effectsCtx = contexts.effects;
+            
+            const centers = [
+                { x: w * 0.25, y: h * 0.5 },
+                { x: w * 0.75, y: h * 0.5 }
+            ];
+            
+            const entanglementStrength = Math.sin(time * 0.005) * 0.3 + 0.7;
+            
+            centers.forEach((center, index) => {
+                const baseAngle = time * 0.006 * params.frequency + index * Math.PI;
+                const orbitRadius = 45;
+                
+                // Dynamic orbital morphing
+                const morphPhase = time * 0.01 + index * Math.PI;
+                const eccentricity = 0.3 + Math.sin(morphPhase) * 0.2;
+                
+                // Elliptical orbit calculation
+                const theta = baseAngle;
+                const r = orbitRadius * (1 - eccentricity) / (1 - eccentricity * Math.cos(theta));
+                
+                const px = center.x + r * Math.cos(theta);
+                const py = center.y + r * Math.sin(theta) * (1 - eccentricity * 0.5);
+                
+                // Enhanced particle visualization with quantum glow
+                const particleGradient = mainCtx.createRadialGradient(px, py, 0, px, py, 15);
+                particleGradient.addColorStop(0, '#9c27b0');
+                particleGradient.addColorStop(0.5, 'rgba(156, 39, 176, 0.6)');
+                particleGradient.addColorStop(1, 'rgba(156, 39, 176, 0)');
+                
+                mainCtx.fillStyle = particleGradient;
+                mainCtx.shadowColor = '#9c27b0';
+                mainCtx.shadowBlur = 20;
+                mainCtx.beginPath();
+                mainCtx.arc(px, py, 8 + entanglementStrength * 4, 0, Math.PI * 2);
+                mainCtx.fill();
+                mainCtx.shadowBlur = 0;
+                
+                // Dynamic spin visualization with morphing
+                const spinAngle = baseAngle * 3 + morphPhase;
+                const spinLength = 18 + entanglementStrength * 8;
+                
+                const spinX = px + spinLength * Math.cos(spinAngle);
+                const spinY = py + spinLength * Math.sin(spinAngle);
+                
+                effectsCtx.strokeStyle = '#64ffda';
+                effectsCtx.lineWidth = 3;
+                effectsCtx.shadowColor = '#64ffda';
+                effectsCtx.shadowBlur = 12;
+                effectsCtx.beginPath();
+                effectsCtx.moveTo(px, py);
+                effectsCtx.lineTo(spinX, spinY);
+                effectsCtx.stroke();
+                effectsCtx.shadowBlur = 0;
+                
+                // Store for correlation
+                center.px = px;
+                center.py = py;
+                center.spinAngle = spinAngle;
+            });
+            
+            // Enhanced quantum correlation field
+            const correlationSteps = 15;
+            for (let step = 0; step <= correlationSteps; step++) {
+                const t = step / correlationSteps;
+                const x = centers[0].px + t * (centers[1].px - centers[0].px);
+                const y = centers[0].py + t * (centers[1].py - centers[0].py);
+                
+                // Non-local correlation visualization
+                const correlation = entanglementStrength;
+                const wavePhase = t * Math.PI * 6 + time * 0.03;
+                const waveAmplitude = Math.sin(wavePhase) * correlation * 12;
+                
+                const fieldX = x;
+                const fieldY = y + waveAmplitude;
+                
+                // Quantum field strength
+                const alpha = correlation * (1 - Math.abs(t - 0.5) * 2) * 0.9;
+                
+                effectsCtx.fillStyle = `rgba(245, 245, 220, ${alpha})`;
+                effectsCtx.shadowColor = 'rgba(245, 245, 220, 0.7)';
+                effectsCtx.shadowBlur = 6;
+                effectsCtx.beginPath();
+                effectsCtx.arc(fieldX, fieldY, 2 + alpha * 5, 0, Math.PI * 2);
+                effectsCtx.fill();
+                effectsCtx.shadowBlur = 0;
+            }
+            
+            // Instantaneous quantum correlation line with morphing
+            const correlationStrength = Math.abs(Math.cos(centers[0].spinAngle - centers[1].spinAngle));
+            const morphingIntensity = Math.sin(time * 0.02) * 0.3 + 0.7;
+            
+            effectsCtx.strokeStyle = `rgba(245, 245, 220, ${correlationStrength * morphingIntensity})`;
+            effectsCtx.lineWidth = 5;
+            effectsCtx.shadowColor = 'rgba(245, 245, 220, 0.8)';
+            effectsCtx.shadowBlur = 15;
+            effectsCtx.setLineDash([8, 8]);
+            effectsCtx.beginPath();
+            effectsCtx.moveTo(centers[0].px, centers[0].py);
+            effectsCtx.lineTo(centers[1].px, centers[1].py);
+            effectsCtx.stroke();
+            effectsCtx.setLineDash([]);
+            effectsCtx.shadowBlur = 0;
+        }
+        
+        function drawMorphingBlackHole(w, h) {
+            const mainCtx = contexts.main;
+            const effectsCtx = contexts.effects;
+            
+            const centerX = w / 2;
+            const centerY = h / 2;
+            const baseEventHorizon = 40;
+            
+            // Morphing event horizon
+            const morphPhase = time * 0.003;
+            const morphAmount = Math.sin(morphPhase) * 0.2 + 1;
+            const eventHorizon = baseEventHorizon * morphAmount;
+            
+            // Dynamic event horizon with distortion
+            const horizonGradient = mainCtx.createRadialGradient(
+                centerX, centerY, 0,
+                centerX, centerY, eventHorizon
+            );
+            horizonGradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
+            horizonGradient.addColorStop(0.7, 'rgba(0, 0, 0, 0.9)');
+            horizonGradient.addColorStop(1, 'rgba(255, 68, 68, 0.4)');
+            
+            mainCtx.fillStyle = horizonGradient;
+            mainCtx.shadowColor = 'rgba(255, 68, 68, 0.6)';
+            mainCtx.shadowBlur = 20;
+            mainCtx.beginPath();
+            mainCtx.arc(centerX, centerY, eventHorizon, 0, Math.PI * 2);
+            mainCtx.fill();
+            mainCtx.shadowBlur = 0;
+            
+            // Fluid spacetime distortion grid
+            effectsCtx.strokeStyle = 'rgba(245, 245, 220, 0.3)';
+            effectsCtx.lineWidth = 1;
+            
+            const gridSize = 25;
+            for (let x = 0; x < w; x += gridSize) {
+                for (let y = 0; y < h; y += gridSize) {
+                    const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                    const curvature = (eventHorizon * eventHorizon) / (distance + eventHorizon);
+                    const fluidDistortion = Math.sin(distance * 0.1 + time * 0.01) * curvature * 0.1;
+                    
+                    const warpX = x - curvature * 3 + fluidDistortion;
+                    const warpY = y - curvature * 2 + fluidDistortion * 0.7;
+                    
+                    effectsCtx.strokeRect(warpX, warpY, gridSize, gridSize);
+                }
+            }
+            
+            // Dynamic accretion disk with fluid motion
+            for (let layer = 0; layer < 4; layer++) {
+                const diskRadius = eventHorizon * (2.2 + layer * 0.3);
+                const rotation = time * 0.002 * (4 - layer);
+                const turbulence = Math.sin(time * 0.008 + layer) * 8;
+                const temperature = 8000 / (diskRadius / eventHorizon);
+                
+                // Enhanced color based on temperature and fluid dynamics
+                const hue = Math.min(60, temperature / 150);
+                const saturation = 70 + layer * 5;
+                const lightness = 45 + layer * 8;
+                const alpha = 0.9 - layer * 0.15;
+                
+                mainCtx.strokeStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha})`;
+                mainCtx.lineWidth = 10 - layer * 2;
+                mainCtx.shadowColor = mainCtx.strokeStyle;
+                mainCtx.shadowBlur = 12;
+                
+                // Fluid accretion disk segments
+                mainCtx.beginPath();
+                for (let angle = 0; angle < Math.PI * 2; angle += 0.05) {
+                    const fluidTurbulence = Math.sin(angle * 4 + rotation + turbulence * 0.1) * turbulence;
+                    const r = diskRadius + fluidTurbulence;
+                    const x = centerX + r * Math.cos(angle + rotation);
+                    const y = centerY + r * Math.sin(angle + rotation) * 0.4; // Disk inclination
+                    
+                    if (angle === 0) mainCtx.moveTo(x, y);
+                    else mainCtx.lineTo(x, y);
+                }
+                mainCtx.stroke();
+                mainCtx.shadowBlur = 0;
+            }
+            
+            // Enhanced Hawking radiation with quantum fluctuations
+            for (let i = 0; i < 20; i++) {
+                const angle = (time * 0.005 + i * 0.4) % (Math.PI * 2);
+                const distance = eventHorizon + Math.random() * 35;
+                const uncertainty = Math.sqrt(distance - eventHorizon) * 2;
+                
+                const x = centerX + distance * Math.cos(angle) + (Math.random() - 0.5) * uncertainty;
+                const y = centerY + distance * Math.sin(angle) + (Math.random() - 0.5) * uncertainty;
+                
+                const energy = Math.random();
+                const size = 1 + energy * 4;
+                const pulse = Math.sin(time * 0.02 + i) * 0.3 + 0.7;
+                
+                effectsCtx.fillStyle = `rgba(245, 245, 220, ${energy * pulse})`;
+                effectsCtx.shadowColor = 'rgba(245, 245, 220, 0.8)';
+                effectsCtx.shadowBlur = size * 3;
+                effectsCtx.beginPath();
+                effectsCtx.arc(x, y, size, 0, Math.PI * 2);
+                effectsCtx.fill();
+                effectsCtx.shadowBlur = 0;
+            }
+        }
+        
+        function drawFluidTunneling(w, h) {
+            const mainCtx = contexts.main;
+            const effectsCtx = contexts.effects;
+            
+            const centerY = h / 2;
+            const barrierX = w / 2;
+            const barrierWidth = 60;
+            const barrierHeight = 120;
+            
+            // Fluid barrier with morphing
+            const barrierMorph = Math.sin(time * 0.005) * 0.1 + 1;
+            const morphedWidth = barrierWidth * barrierMorph;
+            const morphedHeight = barrierHeight * (2 - barrierMorph);
+            
+            const barrierGradient = mainCtx.createLinearGradient(
+                barrierX - morphedWidth/2, 0,
+                barrierX + morphedWidth/2, 0
+            );
+            barrierGradient.addColorStop(0, 'rgba(255, 68, 68, 0.1)');
+            barrierGradient.addColorStop(0.5, 'rgba(255, 68, 68, 0.6)');
+            barrierGradient.addColorStop(1, 'rgba(255, 68, 68, 0.1)');
+            
+            mainCtx.fillStyle = barrierGradient;
+            mainCtx.fillRect(barrierX - morphedWidth/2, centerY - morphedHeight/2, morphedWidth, morphedHeight);
+            
+            // Enhanced wave packets with fluid properties
+            const wavePackets = [
+                { x: w * 0.15, direction: 1, amplitude: 1, color: '#4a90e2', phase: 0 },
+                { x: w * 0.85, direction: -1, amplitude: 0.4, color: '#9c27b0', phase: Math.PI },
+                { x: w * 0.05, direction: -1, amplitude: 0.6, color: '#64ffda', phase: Math.PI/2 }
+            ];
+            
+            wavePackets.forEach((packet, index) => {
+                const fluidOffset = Math.sin(time * 0.008 + index) * 25;
+                const currentX = packet.x + fluidOffset;
+                
+                mainCtx.strokeStyle = packet.color;
+                mainCtx.lineWidth = 3;
+                mainCtx.shadowColor = packet.color;
+                mainCtx.shadowBlur = 10;
+                
+                // Fluid wave packet with enhanced envelope
+                mainCtx.beginPath();
+                for (let dx = -40; dx <= 40; dx += 1) {
+                    const envelope = Math.exp(-dx * dx / 300); // Gaussian envelope
+                    const fluidWave = Math.sin((dx * packet.direction + time * 0.15 + packet.phase) * 0.25);
+                    const viscosityEffect = 1 - params.viscosity * 0.3;
+                    const height = envelope * fluidWave * packet.amplitude * params.amplitude * 20 * viscosityEffect;
+                    
+                    // Add fluid turbulence
+                    const turbulence = Math.sin(dx * 0.2 + time * 0.02) * 2;
+                    
+                    const px = currentX + dx;
+                    const py = centerY + height + turbulence;
+                    
+                    if (dx === -40) mainCtx.moveTo(px, py);
+                    else mainCtx.lineTo(px, py);
+                }
+                mainCtx.stroke();
+                mainCtx.shadowBlur = 0;
+                
+                // Wave packet probability cloud
+                for (let dx = -30; dx <= 30; dx += 3) {
+                    const envelope = Math.exp(-dx * dx / 250);
+                    const probDensity = envelope * packet.amplitude * 0.3;
+                    
+                    if (probDensity > 0.05) {
+                        effectsCtx.fillStyle = `${packet.color}${Math.floor(probDensity * 100).toString(16)}`;
+                        effectsCtx.beginPath();
+                        effectsCtx.arc(
+                            currentX + dx + (Math.random() - 0.5) * 8,
+                            centerY + (Math.random() - 0.5) * 40,
+                            1 + probDensity * 3,
+                            0, Math.PI * 2
+                        );
+                        effectsCtx.fill();
+                    }
+                }
+            });
+            
+            // Enhanced tunneling probability with fluid visualization
+            const tunnelingResolution = 2;
+            for (let x = barrierX - morphedWidth/2; x < barrierX + morphedWidth/2; x += tunnelingResolution) {
+                const penetrationDepth = Math.abs(x - (barrierX - morphedWidth/2));
+                const tunnelProb = Math.exp(-penetrationDepth * 0.06);
+                const fluidTurbulence = Math.sin(x * 0.1 + time * 0.03) * tunnelProb * 15;
+                
+                if (tunnelProb > 0.05) {
+                    effectsCtx.fillStyle = `rgba(245, 245, 220, ${tunnelProb * 0.8})`;
+                    effectsCtx.shadowColor = 'rgba(245, 245, 220, 0.5)';
+                    effectsCtx.shadowBlur = 4;
+                    effectsCtx.beginPath();
+                    effectsCtx.arc(
+                        x,
+                        centerY + fluidTurbulence,
+                        1 + tunnelProb * 4,
+                        0, Math.PI * 2
+                    );
+                    effectsCtx.fill();
+                    effectsCtx.shadowBlur = 0;
+                }
+            }
+        }
+        
+        function drawFluidGravity(w, h) {
+            const mainCtx = contexts.main;
+            const effectsCtx = contexts.effects;
+            
+            const centerX = w / 2;
+            const centerY = h / 2;
+            
+            // Enhanced central mass with pulsing
+            const massPulse = Math.sin(time * 0.01) * 0.2 + 1;
+            const massRadius = 15 * massPulse;
+            
+            const massGradient = mainCtx.createRadialGradient(
+                centerX, centerY, 0,
+                centerX, centerY, massRadius * 2
+            );
+            massGradient.addColorStop(0, 'rgba(245, 245, 220, 1)');
+            massGradient.addColorStop(0.5, 'rgba(245, 245, 220, 0.8)');
+            massGradient.addColorStop(1, 'rgba(245, 245, 220, 0.2)');
+            
+            mainCtx.fillStyle = massGradient;
+            mainCtx.shadowColor = 'rgba(245, 245, 220, 0.9)';
+            mainCtx.shadowBlur = 25;
+            mainCtx.beginPath();
+            mainCtx.arc(centerX, centerY, massRadius, 0, Math.PI * 2);
+            mainCtx.fill();
+            mainCtx.shadowBlur = 0;
+            
+            // Fluid spacetime curvature with enhanced morphing
+            effectsCtx.strokeStyle = 'rgba(245, 245, 220, 0.3)';
+            effectsCtx.lineWidth = 1;
+            
+            const gridSize = 35;
+            for (let x = 0; x < w; x += gridSize) {
+                for (let y = 0; y < h; y += gridSize) {
+                    const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                    const curvature = (massRadius * 500) / (distance + massRadius);
+                    const fluidWave = Math.sin(distance * 0.05 + time * 0.008) * curvature * 0.02;
+                    
+                    const warpX = x - curvature * 4 + fluidWave;
+                    const warpY = y - curvature * 3 + fluidWave * 0.8;
+                    
+                    effectsCtx.strokeRect(warpX, warpY, gridSize, gridSize);
+                }
+            }
+            
+            // Enhanced gravitational field lines with fluid flow
+            for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
+                mainCtx.strokeStyle = 'rgba(100, 255, 218, 0.8)';
+                mainCtx.lineWidth = 2;
+                mainCtx.shadowColor = 'rgba(100, 255, 218, 0.5)';
+                mainCtx.shadowBlur = 8;
+                
+                mainCtx.beginPath();
+                for (let r = massRadius + 10; r < 250; r += 3) {
+                    const fieldStrength = (massRadius * 200) / (r * r);
+                    const fluidDeflection = Math.sin(r * 0.03 + time * 0.01 + angle) * fieldStrength * 0.1;
+                    
+                    const effectiveAngle = angle + fluidDeflection;
+                    const x = centerX + r * Math.cos(effectiveAngle);
+                    const y = centerY + r * Math.sin(effectiveAngle);
+                    
+                    if (r === massRadius + 10) mainCtx.moveTo(x, y);
+                    else mainCtx.lineTo(x, y);
+                    
+                    // Field strength visualization
+                    if (r % 40 === 0 && fieldStrength > 0.5) {
+                        effectsCtx.fillStyle = `rgba(100, 255, 218, ${Math.min(fieldStrength * 0.02, 0.8)})`;
+                        effectsCtx.shadowColor = 'rgba(100, 255, 218, 0.6)';
+                        effectsCtx.shadowBlur = fieldStrength * 0.1;
+                        effectsCtx.beginPath();
+                        effectsCtx.arc(x, y, 2 + fieldStrength * 0.03, 0, Math.PI * 2);
+                        effectsCtx.fill();
+                        effectsCtx.shadowBlur = 0;
+                    }
+                }
+                mainCtx.stroke();
+                mainCtx.shadowBlur = 0;
+            }
+            
+            // Enhanced orbital mechanics with fluid perturbations
+            const orbits = [
+                { radius: 70, eccentricity: 0.1, speed: 0.006, color: '#4a90e2' },
+                { radius: 110, eccentricity: 0.15, speed: 0.004, color: '#9c27b0' },
+                { radius: 150, eccentricity: 0.08, speed: 0.003, color: '#64ffda' }
+            ];
+            
+            orbits.forEach((orbit, index) => {
+                const angle = time * orbit.speed + index * Math.PI / 3;
+                const fluidPerturbation = Math.sin(time * 0.02 + index) * 5;
+                
+                // Enhanced elliptical orbit
+                const r = (orbit.radius + fluidPerturbation) * (1 - orbit.eccentricity) / 
+                         (1 - orbit.eccentricity * Math.cos(angle));
+                
+                const x = centerX + r * Math.cos(angle);
+                const y = centerY + r * Math.sin(angle);
+                
+                // Orbital body with enhanced glow
+                mainCtx.fillStyle = orbit.color;
+                mainCtx.shadowColor = orbit.color;
+                mainCtx.shadowBlur = 15;
+                mainCtx.beginPath();
+                mainCtx.arc(x, y, 5, 0, Math.PI * 2);
+                mainCtx.fill();
+                mainCtx.shadowBlur = 0;
+                
+                // Enhanced orbital trail with fluid effects
+                effectsCtx.strokeStyle = `${orbit.color}60`;
+                effectsCtx.lineWidth = 1;
+                effectsCtx.setLineDash([3, 6]);
+                effectsCtx.beginPath();
+                
+                for (let trailAngle = 0; trailAngle < Math.PI * 2; trailAngle += 0.1) {
+                    const trailR = orbit.radius * (1 - orbit.eccentricity) / 
+                                  (1 - orbit.eccentricity * Math.cos(trailAngle));
+                    const fluidTrail = Math.sin(trailAngle * 3 + time * 0.01) * 3;
+                    
+                    const trailX = centerX + (trailR + fluidTrail) * Math.cos(trailAngle);
+                    const trailY = centerY + (trailR + fluidTrail) * Math.sin(trailAngle);
+                    
+                    if (trailAngle === 0) effectsCtx.moveTo(trailX, trailY);
+                    else effectsCtx.lineTo(trailX, trailY);
+                }
+                effectsCtx.stroke();
+                effectsCtx.setLineDash([]);
+            });
+        }
+        
+        // Enhanced parameter updates
+        function updateDisplays() {
+            document.getElementById('freq-display').textContent = params.frequency.toFixed(1);
+            document.getElementById('amp-display').textContent = params.amplitude.toFixed(1);
+            document.getElementById('phase-display').textContent = params.phase.toFixed(1);
+            document.getElementById('visc-display').textContent = params.viscosity.toFixed(1);
+            document.getElementById('depth-display').textContent = params.depth.toFixed(1);
+            document.getElementById('drive-display').textContent = params.drive.toFixed(1);
+            
+            // Enhanced calculations
+            const wavelength = 343 / params.frequency; // Sound speed in air
+            const nodeCount = Math.floor(params.frequency / 5) + 3;
+            const resonanceStrength = Math.sin(time * 0.01) * 0.3 + 0.7;
+            const surfaceTension = 72.8 * (1 - params.viscosity * 0.2);
+            
+            // Pattern type based on frequency
+            let patternType = 'Radial';
+            if (params.frequency > 40) patternType = 'Polygonal';
+            else if (params.frequency > 20) patternType = 'Square';
+            
+            document.getElementById('display-freq').textContent = params.frequency.toFixed(1) + ' Hz';
+            document.getElementById('wavelength').textContent = (wavelength * 100).toFixed(1) + ' cm';
+            document.getElementById('resonance-strength').textContent = resonanceStrength.toFixed(3);
+            document.getElementById('surface-tension').textContent = surfaceTension.toFixed(1);
+            document.getElementById('node-count').textContent = nodeCount;
+            document.getElementById('pattern-type').textContent = patternType;
+            
+            // Dynamic equations based on mode
+            const equations = {
+                cymatics: '∇²ψ = (1/c²)(∂²ψ/∂t²) + ρf(ω)',
+                resonance: '|ψ(t)⟩ = e^(-iωt-γt)|ψ₀⟩',
+                morphing: 'ψ(t) = ∑ₙ aₙ(t)|φₙ⟩',
+                interference: '|ψ⟩ = α|ψ₁⟩ + βe^(iφ)|ψ₂⟩',
+                entanglement: '|ψ⟩ = (|↑↓⟩ - |↓↑⟩)/√2',
+                blackhole: 'ds² = -(1-2GM/r)dt² + dr²/(1-2GM/r)',
+                tunneling: 'T = e^(-2∫√(2m(V-E))dx/ℏ)',
+                gravity: 'Rμν - ½gμνR = 8πTμν'
+            };
+            document.getElementById('equation').textContent = equations[currentMode];
+        }
+        
+        // Enhanced animation loop
+        function animate() {
+            time++;
+            
+            // Staggered updates for performance
+            if (time % 2 === 0) {
+                drawQuantumFields();
+            }
+            
+            drawMainVisualization();
+            
+            if (time % 8 === 0) {
+                updateDisplays();
+            }
+            
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        // Enhanced event listeners
+        document.getElementById('frequency').addEventListener('input', (e) => {
+            params.frequency = parseFloat(e.target.value);
+        });
+        
+        document.getElementById('amplitude').addEventListener('input', (e) => {
+            params.amplitude = parseFloat(e.target.value);
+        });
+        
+        document.getElementById('phase').addEventListener('input', (e) => {
+            params.phase = parseFloat(e.target.value);
+        });
+        
+        document.getElementById('viscosity').addEventListener('input', (e) => {
+            params.viscosity = parseFloat(e.target.value);
+        });
+        
+        document.getElementById('depth').addEventListener('input', (e) => {
+            params.depth = parseFloat(e.target.value);
+        });
+        
+        document.getElementById('drive').addEventListener('input', (e) => {
+            params.drive = parseFloat(e.target.value);
+        });
+        
+        // Enhanced mode switching
+        document.querySelectorAll('.viz-button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.viz-button').forEach(b => b.classList.remove('active'));
+                button.classList.add('active');
+                currentMode = button.dataset.mode;
+                time = 0;
+            });
+        });
+        
+        // Enhanced resize handling
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        const debouncedResize = debounce(() => {
+            resizeCanvases();
+        }, 250);
+        
+        // Initialize
+        window.addEventListener('resize', debouncedResize);
+        
+        // Force initial resize and setup
+        setTimeout(() => {
+            resizeCanvases();
+            updateDisplays();
+            
+            // Test draw to ensure canvas is working
+            const testCtx = contexts.main;
+            testCtx.fillStyle = 'rgba(245, 245, 220, 0.5)';
+            testCtx.fillRect(10, 10, 100, 50);
+            testCtx.fillStyle = '#f5f5dc';
+            testCtx.font = '16px IBM Plex Mono';
+            testCtx.fillText('LOADING...', 20, 35);
+        }, 100);
+        
+        animate();
+    </script>
+</body>
+</html>

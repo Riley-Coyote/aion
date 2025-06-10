@@ -1,0 +1,4975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeepFrame Intelligence // Quantum Network Simulator</title>
+<!-- Error handling for debugging -->
+<script>
+// Global error handler to catch and display initialization errors
+window.addEventListener('error', function(e) {
+console.error('Global error caught:', e.message, 'at', e.filename, 'line', e.lineno);
+
+// Display error in UI after short delay (to ensure DOM is loaded)
+setTimeout(function() {
+const loadingScreen = document.getElementById('loadingScreen');
+if (loadingScreen) {
+loadingScreen.innerHTML = '<div style="color: #ff6b6b; padding: 20px; max-width: 80%; text-align: center;">' +
+'<h3>Error during initialization</h3>' +
+'<p>' + e.message + '</p>' +
+'<p>Check console for details.</p>' +
+'<button onclick="location.reload()">Reload</button>' +
+'</div>';
+}
+}, 500);
+
+return false; // Let the error propagate
+});
+</script>
+<!-- Load Three.js from a reliable CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+
+:root {
+/* AION Protocol Dark Mode Color Scheme */
+--bg-stock: #1A1A1A;
+--bg-darker: #121212;
+--bg-lighter: #252525;
+--graphite: #E8E7E2;
+--graphite-dim: rgba(232, 231, 226, 0.7);
+--ghosting: rgba(232, 231, 226, 0.08);
+--ghosting-light: rgba(232, 231, 226, 0.04);
+--ghosting-med: rgba(232, 231, 226, 0.12);
+--accent: #6CA6D9;
+--accent-light: rgba(108, 166, 217, 0.6);
+--accent-lighter: rgba(108, 166, 217, 0.2);
+--panel-inner: rgba(0, 0, 0, 0.2);
+--slider-track: rgba(0, 0, 0, 0.3);
+--slider-track-highlight: rgba(108, 166, 217, 0.4);
+--slider-thumb: rgba(232, 231, 226, 0.9);
+--slider-thumb-shadow: 0 0 10px rgba(108, 166, 217, 0.6);
+--led-off: rgba(232, 231, 226, 0.2);
+--led-red: rgba(255, 107, 107, 0.8);
+--led-green: rgba(90, 172, 90, 0.8);
+--led-blue: rgba(108, 166, 217, 0.8);
+--switch-on: rgba(90, 172, 90, 0.9);
+--switch-off: rgba(232, 231, 226, 0.4);
+--success: #5AAC5A;
+--warning: #DAA520;
+--error: #FF6B6B;
+--info: #6CA6D9;
+
+/* AION Protocol Typography Scale */
+--font-14: 17px;
+--font-11: 13px;
+--font-10: 12px;
+--font-9: 11px;
+--font-8: 10px;
+--font-6: 7px;
+
+/* Focus mode variables */
+--opacity-unfocused: 0.3;
+--opacity-focused: 1;
+--scale-unfocused: 0.95;
+--scale-focused: 1;
+
+/* Animation timing */
+--transition-speed: 0.3s;
+--scan-cycle: 2000ms;
+--phosphor-decay: 150ms;
+--frame-rate: 83ms;
+--blur-radius: 15px;
+}
+
+* {
+box-sizing: border-box;
+margin: 0;
+padding: 0;
+}
+
+body {
+margin: 0;
+padding: 0;
+overflow: hidden;
+background-color: var(--bg-stock);
+font-family: 'IBM Plex Mono', monospace;
+color: var(--graphite);
+cursor: default;
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
+min-height: 100vh;
+transition: background-color 0.5s ease;
+position: relative;
+}
+
+/* Film grain animation */
+body::before {
+content: '';
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+pointer-events: none;
+opacity: 0.01; /* Reduced opacity */
+background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+z-index: 1; /* Lowered z-index */
+animation: filmGrain 0.5s steps(1) infinite;
+}
+
+@keyframes filmGrain {
+0%, 100% { transform: translate(0, 0); }
+10% { transform: translate(-1%, -1%); }
+20% { transform: translate(1%, 1%); }
+30% { transform: translate(-2%, -1%); }
+40% { transform: translate(2%, 2%); }
+50% { transform: translate(-1%, 2%); }
+60% { transform: translate(1%, -1%); }
+70% { transform: translate(-2%, 2%); }
+80% { transform: translate(2%, -2%); }
+90% { transform: translate(-1%, -2%); }
+}
+
+/* Scanline effect */
+body::after {
+content: '';
+position: fixed;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: repeating-linear-gradient(
+0deg,
+transparent,
+transparent 1px,
+rgba(0, 0, 0, 0.08) 1px, /* Reduced scanline opacity */
+rgba(0, 0, 0, 0.08) 2px
+);
+pointer-events: none;
+z-index: 2; /* Lowered z-index */
+animation: scan var(--scan-cycle) linear infinite;
+}
+
+@keyframes scan {
+0% { transform: translateY(0); }
+100% { transform: translateY(4px); }
+}
+
+/* Focus mode styles */
+body.focus-mode .control-panel:not(:hover):not(.focused) {
+opacity: var(--opacity-unfocused);
+transform: scale(var(--scale-unfocused));
+filter: blur(1px);
+}
+
+body.focus-mode .control-panel:hover,
+body.focus-mode .control-panel.focused {
+opacity: var(--opacity-focused);
+transform: scale(var(--scale-focused));
+filter: blur(0px);
+z-index: 20;
+}
+
+#particleCanvas {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+z-index: 5; /* Ensured particle canvas is above background effects */
+}
+
+.control-panel {
+position: absolute;
+padding: 24px;
+background: rgba(26, 26, 26, 0.7);
+border-radius: 6px;
+z-index: 10;
+border: 1px solid var(--ghosting);
+box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+transition: all var(--transition-speed) ease;
+backdrop-filter: blur(var(--blur-radius));
+-webkit-backdrop-filter: blur(var(--blur-radius));
+transform-origin: center;
+transform: translateZ(0);
+will-change: transform, opacity;
+}
+
+.control-panel:hover {
+border-color: var(--ghosting-med);
+box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(108, 166, 217, 0.1);
+}
+
+/* Panel title bar */
+.control-panel h3 {
+margin: -24px -24px 20px -24px;
+padding: 16px;
+border-bottom: 1px solid var(--ghosting);
+background: rgba(0, 0, 0, 0.2);
+border-radius: 6px 6px 0 0;
+box-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+font-size: var(--font-10);
+color: var(--graphite);
+letter-spacing: 2px;
+text-transform: uppercase;
+position: relative;
+font-weight: 400;
+}
+
+/* Little LED indicator in panel header */
+.control-panel h3:before {
+content: "";
+display: inline-block;
+width: 8px;
+height: 8px;
+background: var(--led-off);
+border-radius: 50%;
+margin-right: 10px;
+box-shadow: 0 0 5px var(--led-off);
+vertical-align: middle;
+transition: all var(--transition-speed) ease;
+}
+
+.control-panel:hover h3:before {
+background: var(--led-blue);
+box-shadow: 0 0 10px var(--led-blue);
+}
+
+.shape-controls {
+bottom: 20px;
+left: 20px;
+}
+
+.color-controls {
+bottom: 20px;
+right: 20px;
+}
+
+.settings-panel {
+top: 20px;
+right: 20px;
+width: 300px;
+max-height: 80vh;
+overflow-y: auto;
+overflow-x: hidden;
+}
+
+.settings-panel::-webkit-scrollbar {
+width: 6px;
+}
+
+.settings-panel::-webkit-scrollbar-track {
+background: rgba(16, 16, 16, 0.2);
+border-radius: 3px;
+}
+
+.settings-panel::-webkit-scrollbar-thumb {
+background: var(--accent-lighter);
+border-radius: 3px;
+}
+
+.settings-panel::-webkit-scrollbar-thumb:hover {
+background: var(--accent-light);
+}
+
+h3 {
+margin-top: 0;
+margin-bottom: 20px;
+font-size: var(--font-11);
+color: var(--graphite);
+font-weight: 400;
+text-transform: uppercase;
+letter-spacing: 1.5px;
+}
+
+.button-group {
+display: flex;
+flex-wrap: wrap;
+gap: 10px;
+margin-bottom: 16px;
+}
+
+button {
+padding: 12px 16px;
+background: rgba(26, 26, 26, 0.7);
+border: 1px solid var(--ghosting);
+border-radius: 4px;
+color: var(--graphite);
+cursor: pointer;
+font-size: var(--font-9);
+transition: all var(--transition-speed) ease;
+font-family: 'IBM Plex Mono', monospace;
+letter-spacing: 0.5px;
+font-weight: 400;
+backdrop-filter: blur(var(--blur-radius));
+-webkit-backdrop-filter: blur(var(--blur-radius));
+box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+position: relative;
+overflow: hidden;
+}
+
+/* Button highlight effect */
+button:before {
+content: "";
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+height: 50%;
+background: var(--ghosting-light);
+border-radius: 4px 4px 0 0;
+pointer-events: none;
+opacity: 0.4;
+}
+
+button:hover {
+background: rgba(36, 36, 36, 0.7);
+transform: translateY(-2px) scale(1.02);
+box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25), 0 0 15px rgba(108, 166, 217, 0.1);
+border-color: var(--ghosting-med);
+}
+
+button:active {
+transform: translateY(1px) scale(0.98);
+box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+background: rgba(16, 16, 16, 0.7);
+}
+
+button.active {
+background: rgba(108, 166, 217, 0.15);
+color: var(--graphite);
+border: 1px solid rgba(108, 166, 217, 0.3);
+box-shadow:
+0 0 20px rgba(108, 166, 217, 0.2),
+inset 0 0 5px rgba(108, 166, 217, 0.1);
+text-shadow: 0 0 5px rgba(232, 231, 226, 0.5);
+}
+
+button.active:before {
+opacity: 0.6;
+background: linear-gradient(to bottom, rgba(232, 231, 226, 0.1), transparent);
+}
+
+.slider-container {
+margin-bottom: 24px;
+position: relative;
+padding: 14px 16px 20px;
+background: rgba(0, 0, 0, 0.2);
+border-radius: 4px;
+box-shadow: var(--inset-shadow);
+border: 1px solid var(--ghosting);
+backdrop-filter: blur(calc(var(--blur-radius) * 1.5));
+-webkit-backdrop-filter: blur(calc(var(--blur-radius) * 1.5));
+transition: all var(--transition-speed) ease;
+}
+
+.slider-container:hover {
+border-color: var(--ghosting-med);
+box-shadow: 0 0 15px rgba(108, 166, 217, 0.1);
+}
+
+.slider-header {
+display: flex;
+justify-content: space-between;
+margin-bottom: 14px;
+font-size: var(--font-8);
+position: relative;
+}
+
+.slider-value {
+color: var(--accent);
+background: rgba(0, 0, 0, 0.3);
+border: 1px solid rgba(232, 231, 226, 0.1);
+border-radius: 2px;
+padding: 3px 8px;
+font-variant-numeric: tabular-nums;
+font-family: 'IBM Plex Mono', monospace;
+box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+text-shadow: 0 0 5px var(--accent);
+font-size: var(--font-9);
+backdrop-filter: blur(var(--blur-radius));
+-webkit-backdrop-filter: blur(var(--blur-radius));
+}
+
+label {
+color: var(--graphite-dim);
+font-weight: 400;
+text-transform: uppercase;
+font-size: var(--font-8);
+letter-spacing: 1px;
+}
+
+/* Slider track style */
+input[type="range"] {
+-webkit-appearance: none;
+appearance: none;
+width: 100%;
+height: 4px;
+background: var(--slider-track);
+border-radius: 2px;
+outline: none;
+cursor: pointer;
+display: block;
+margin-top: 16px;
+box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(232, 231, 226, 0.05);
+position: relative;
+}
+
+/* Add ticks below the slider */
+input[type="range"]::before {
+content: "";
+position: absolute;
+left: 0;
+right: 0;
+top: 10px;
+height: 10px;
+background-image: repeating-linear-gradient(
+to right,
+rgba(232, 231, 226, 0.1),
+rgba(232, 231, 226, 0.1) 1px,
+transparent 1px,
+transparent 10%
+);
+pointer-events: none;
+}
+
+/* Chrome slider thumb style */
+input[type="range"]::-webkit-slider-thumb {
+-webkit-appearance: none;
+appearance: none;
+width: 22px;
+height: 22px;
+border-radius: 50%;
+background: var(--slider-thumb);
+cursor: pointer;
+box-shadow: var(--slider-thumb-shadow);
+border: 1px solid #222;
+position: relative;
+z-index: 2;
+
+/* Inset effect with radial gradient */
+background-image: radial-gradient(
+circle at 30% 30%,
+rgba(232, 231, 226, 0.3),
+transparent 60%
+), var(--slider-thumb);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+transform: scale(1.1);
+box-shadow: 0 3px 5px rgba(0, 0, 0, 0.6);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+transform: scale(0.95);
+box-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Filled track effect - pseudo-element overlay */
+.slider-container::after {
+content: "";
+position: absolute;
+left: 14px;
+right: var(--slider-fill, calc(100% - 14px)); /* Updated via JS */
+height: 4px;
+bottom: 24px;
+background: var(--slider-track-highlight);
+border-radius: 2px;
+pointer-events: none;
+box-shadow: 0 0 4px rgba(108, 166, 217, 0.3);
+transition: right 0.1s ease;
+}
+
+.terminal-button {
+position: absolute;
+top: 20px;
+left: 20px;
+z-index: 100;
+display: flex;
+align-items: center;
+gap: 8px;
+padding: 12px 20px;
+border-radius: 4px;
+
+/* Terminal-style button */
+background: rgba(26, 26, 26, 0.8);
+border: 1px solid var(--ghosting);
+color: var(--graphite);
+box-shadow:
+0 2px 5px rgba(0, 0, 0, 0.4),
+inset 0 1px 0 rgba(232, 231, 226, 0.15),
+inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+transform-style: preserve-3d;
+transform: perspective(500px) translateZ(0);
+transition: all 0.2s ease;
+font-family: 'IBM Plex Mono', monospace;
+font-size: var(--font-9);
+letter-spacing: 1px;
+}
+
+.terminal-button:hover {
+transform: perspective(500px) translateZ(5px);
+box-shadow:
+0 4px 8px rgba(0, 0, 0, 0.5),
+inset 0 1px 0 rgba(232, 231, 226, 0.2),
+inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.terminal-button:active {
+transform: perspective(500px) translateZ(-2px);
+box-shadow:
+0 1px 2px rgba(0, 0, 0, 0.4),
+inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* Terminal icon */
+.terminal-button:before {
+content: "⤢";
+display: inline-block;
+font-size: 18px;
+margin-right: 5px;
+font-weight: bold;
+color: var(--accent);
+text-shadow: 0 0 3px var(--accent-light);
+}
+
+.deepframe-logo {
+position: fixed;
+bottom: 20px;
+left: 50%;
+transform: translateX(-50%);
+font-size: var(--font-9);
+color: var(--graphite-dim);
+text-transform: uppercase;
+letter-spacing: 4px;
+z-index: 10;
+transition: all 0.3s ease;
+font-weight: 400;
+
+/* Terminal display effect */
+background: rgba(0, 0, 0, 0.5);
+padding: 8px 20px;
+border-radius: 2px;
+border: 1px solid rgba(232, 231, 226, 0.1);
+box-shadow:
+0 2px 8px rgba(0, 0, 0, 0.6),
+inset 0 0 10px rgba(108, 166, 217, 0.1);
+}
+
+/* Digital display effect with subtle glow */
+.deepframe-logo::before {
+content: "";
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: repeating-linear-gradient(
+to bottom,
+transparent,
+transparent 1px,
+rgba(108, 166, 217, 0.03) 1px,
+rgba(108, 166, 217, 0.03) 2px
+);
+pointer-events: none;
+z-index: -1;
+}
+
+.deepframe-logo:hover {
+color: var(--accent);
+text-shadow: 0 0 5px var(--accent-light);
+box-shadow:
+0 4px 12px rgba(0, 0, 0, 0.7),
+inset 0 0 15px rgba(108, 166, 217, 0.2);
+}
+
+/* Toggle switch styles */
+.toggle-container {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-top: 15px;
+padding: 10px 14px;
+background: rgba(0, 0, 0, 0.2);
+border-radius: 4px;
+box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+border: 1px solid rgba(232, 231, 226, 0.05);
+}
+
+.toggle-label {
+color: var(--graphite-dim);
+font-weight: 400;
+text-transform: uppercase;
+font-size: var(--font-8);
+letter-spacing: 0.5px;
+}
+
+.switch {
+position: relative;
+display: inline-block;
+width: 54px;
+height: 28px;
+font-family: 'IBM Plex Mono', monospace;
+}
+
+.switch input {
+opacity: 0;
+width: 0;
+height: 0;
+}
+
+.switch .slider {
+position: absolute;
+cursor: pointer;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: rgba(0, 0, 0, 0.4);
+transition: .3s;
+border: 1px solid rgba(232, 231, 226, 0.1);
+box-shadow:
+inset 0 1px 3px rgba(0, 0, 0, 0.8),
+0 1px 0 rgba(232, 231, 226, 0.05);
+}
+
+/* ON/OFF text labels */
+.switch .slider:after {
+content: "OFF";
+position: absolute;
+top: 6px;
+right: 7px;
+font-size: 10px;
+color: rgba(232, 231, 226, 0.4);
+text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+}
+
+.switch input:checked + .slider:after {
+content: "ON";
+left: 9px;
+right: auto;
+color: var(--accent);
+text-shadow: 0 0 4px rgba(108, 166, 217, 0.8);
+}
+
+.switch .slider:before {
+position: absolute;
+content: "";
+height: 22px;
+width: 22px;
+left: 2px;
+bottom: 2px;
+background: var(--slider-thumb);
+transition: .3s;
+box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+border: 1px solid #222;
+
+/* Inset effect with radial gradient */
+background-image: radial-gradient(
+circle at 30% 30%,
+rgba(232, 231, 226, 0.3),
+transparent 60%
+), var(--slider-thumb);
+}
+
+.switch input:checked + .slider {
+background-color: rgba(0, 0, 0, 0.4);
+}
+
+.switch input:checked + .slider:before {
+transform: translateX(26px);
+background-image: radial-gradient(
+circle at 30% 30%,
+rgba(232, 231, 226, 0.3),
+transparent 60%
+), linear-gradient(to bottom, #6CA6D9, #4A7BA6);
+}
+
+.switch .slider.round {
+border-radius: 24px;
+}
+
+.switch .slider.round:before {
+border-radius: 50%;
+}
+
+/* Focus/pressed state */
+.switch input:focus + .slider,
+.switch input:active + .slider {
+box-shadow:
+inset 0 1px 3px rgba(0, 0, 0, 0.8),
+0 0 4px var(--accent-light);
+}
+
+/* Audio controls */
+.audio-controls {
+margin-top: 15px;
+padding: 14px;
+background: rgba(0, 0, 0, 0.2);
+border-radius: 4px;
+box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+border: 1px solid rgba(232, 231, 226, 0.05);
+margin-bottom: 10px;
+}
+
+.audio-visualizer {
+height: 50px;
+background: rgba(0, 0, 0, 0.3);
+border-radius: 2px;
+margin-bottom: 15px;
+display: flex;
+align-items: flex-end;
+padding: 4px;
+overflow: hidden;
+border: 1px solid rgba(232, 231, 226, 0.05);
+box-shadow:
+inset 0 1px 3px rgba(0, 0, 0, 0.8),
+0 1px 0 rgba(232, 231, 226, 0.05);
+position: relative;
+}
+
+/* Add monitor scan lines */
+.audio-visualizer::before {
+content: "";
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: repeating-linear-gradient(
+to bottom,
+transparent,
+transparent 1px,
+rgba(0, 0, 0, 0.1) 1px,
+rgba(0, 0, 0, 0.1) 2px
+);
+pointer-events: none;
+z-index: 1;
+}
+
+/* Add screen glow effect */
+.audio-visualizer::after {
+content: "";
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: linear-gradient(
+to bottom,
+rgba(108, 166, 217, 0.1),
+transparent 40%
+);
+pointer-events: none;
+z-index: 1;
+}
+
+.audio-bars {
+display: flex;
+width: 100%;
+height: 100%;
+align-items: flex-end;
+gap: 1px;
+position: relative;
+}
+
+.audio-bar {
+flex: 1;
+background: var(--accent);
+min-height: 2px;
+border-radius: 1px 1px 0 0;
+opacity: 0.7;
+transition: height 0.05s ease;
+box-shadow: 0 0 3px var(--accent);
+}
+
+/* Make odd bars slightly different color for retro VU meter look */
+.audio-bar:nth-child(odd) {
+background: #8EBAE0;
+}
+
+/* Horizontal lines in the visualizer */
+.audio-visualizer .grid-lines {
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+pointer-events: none;
+z-index: 2;
+opacity: 0.2;
+}
+
+.audio-visualizer .grid-line {
+position: absolute;
+left: 0;
+right: 0;
+height: 1px;
+background: rgba(232, 231, 226, 0.4);
+}
+
+/* Mode tabs styling */
+.tabs {
+display: flex;
+margin-bottom: 20px;
+border-bottom: 1px solid rgba(232, 231, 226, 0.05);
+}
+
+.tab {
+padding: 8px 16px;
+background: transparent;
+border: none;
+border-bottom: 2px solid transparent;
+border-radius: 0;
+color: var(--graphite-dim);
+margin-right: 8px;
+font-size: var(--font-9);
+}
+
+.tab:hover {
+background: transparent;
+color: var(--graphite);
+transform: none;
+}
+
+.tab.active {
+color: var(--accent);
+border-bottom: 2px solid var(--accent);
+background: transparent;
+box-shadow: none;
+font-weight: 400;
+}
+
+/* Loading screen */
+.loading-screen {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: var(--bg-stock);
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+z-index: 1000;
+transition: opacity 0.5s ease;
+}
+
+.loading-screen.hidden {
+opacity: 0;
+pointer-events: none;
+}
+
+.loading-spinner {
+width: 60px;
+height: 60px;
+border: 3px solid rgba(232, 231, 226, 0.05);
+border-radius: 50%;
+border-top: 3px solid var(--accent);
+animation: spin 1s linear infinite;
+}
+
+.loading-text {
+margin-top: 20px;
+font-size: var(--font-9);
+color: var(--graphite-dim);
+text-transform: uppercase;
+letter-spacing: 3px;
+font-weight: 300;
+}
+
+@keyframes spin {
+0% { transform: rotate(0deg); }
+100% { transform: rotate(360deg); }
+}
+
+/* Debug console */
+#debugConsole {
+position: fixed;
+bottom: 20px;
+left: 50%;
+transform: translateX(-50%);
+width: 50%;
+max-height: 200px;
+background: rgba(0, 0, 0, 0.8);
+border: 1px solid rgba(232, 231, 226, 0.05);
+border-radius: 4px;
+color: #5AAC5A;
+font-family: 'IBM Plex Mono', monospace;
+font-size: var(--font-9);
+padding: 10px;
+overflow-y: auto;
+z-index: 1000;
+display: none;
+}
+
+.debug-message {
+margin: 2px 0;
+padding: 2px 0;
+border-bottom: 1px solid rgba(40, 40, 40, 0.6);
+}
+
+.debug-error {
+color: var(--error);
+}
+
+.debug-warning {
+color: var(--warning);
+}
+
+.debug-info {
+color: var(--success);
+}
+
+/* Image Upload Panel */
+.image-upload-panel {
+position: absolute;
+top: 20px;
+left: 50%;
+transform: translateX(-50%);
+z-index: 90;
+padding: 24px;
+background: rgba(26, 26, 26, 0.8);
+border-radius: 4px;
+border: 1px solid var(--ghosting);
+box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+backdrop-filter: blur(var(--blur-radius));
+-webkit-backdrop-filter: blur(var(--blur-radius));
+}
+
+.image-upload-container {
+margin-top: 15px;
+display: flex;
+flex-direction: column;
+gap: 12px;
+}
+
+.image-upload-input {
+display: none;
+}
+
+.image-upload-button {
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 10px;
+padding: 12px 18px;
+width: 100%;
+background: rgba(26, 26, 26, 0.8);
+border: 1px solid var(--ghosting);
+color: var(--graphite);
+border-radius: 4px;
+cursor: pointer;
+transition: all var(--transition-speed) ease;
+font-size: var(--font-10);
+margin-bottom: 16px;
+position: relative;
+overflow: hidden;
+box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+font-family: 'IBM Plex Mono', monospace;
+}
+
+.image-upload-button::after {
+content: "";
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+height: 40%;
+background: rgba(232, 231, 226, 0.05);
+border-radius: 4px 4px 0 0;
+pointer-events: none;
+}
+
+.image-upload-button:hover {
+background: rgba(36, 36, 36, 0.8);
+transform: translateY(-2px);
+border-color: var(--ghosting-med);
+box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25), 0 0 15px rgba(108, 166, 217, 0.1);
+}
+
+.upload-icon {
+font-size: 1.2rem;
+}
+
+.image-preview {
+position: relative;
+width: 100%;
+height: 120px;
+background: rgba(0, 0, 0, 0.3);
+border-radius: 4px;
+overflow: hidden;
+display: none;
+margin-bottom: 16px;
+border: 1px solid rgba(232, 231, 226, 0.05);
+box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.image-preview img {
+width: 100%;
+height: 100%;
+object-fit: cover;
+}
+
+.preview-overlay {
+position: absolute;
+bottom: 0;
+left: 0;
+right: 0;
+background: rgba(0, 0, 0, 0.5);
+padding: 4px 8px;
+font-size: var(--font-8);
+color: var(--graphite);
+}
+
+.slider-labels {
+display: flex;
+justify-content: space-between;
+font-size: var(--font-8);
+color: var(--graphite-dim);
+margin-top: 4px;
+padding: 0 2px;
+}
+
+.sampling-modes-container {
+margin-top: 15px;
+}
+
+.section-label {
+display: block;
+color: var(--graphite-dim);
+font-size: var(--font-8);
+text-transform: uppercase;
+letter-spacing: 0.5px;
+margin-bottom: 8px;
+}
+
+.image-actions {
+display: flex;
+gap: 10px;
+margin-top: 20px;
+}
+
+.image-action-button {
+flex: 1;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 6px;
+padding: 10px;
+background: rgba(26, 26, 26, 0.8);
+border: 1px solid var(--ghosting);
+border-radius: 4px;
+color: var(--graphite);
+font-size: var(--font-9);
+cursor: pointer;
+transition: all 0.2s ease;
+font-family: 'IBM Plex Mono', monospace;
+}
+
+.reset-button {
+background: rgba(108, 166, 217, 0.05);
+border-color: rgba(108, 166, 217, 0.2);
+}
+
+.close-button {
+background: rgba(255, 107, 107, 0.05);
+border-color: rgba(255, 107, 107, 0.2);
+}
+
+.image-action-button:hover {
+transform: translateY(-2px);
+box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.reset-button:hover {
+background: rgba(108, 166, 217, 0.1);
+border-color: rgba(108, 166, 217, 0.3);
+}
+
+.close-button:hover {
+background: rgba(255, 107, 107, 0.1);
+border-color: rgba(255, 107, 107, 0.3);
+}
+
+.action-icon {
+font-size: 1rem;
+}
+
+/* Chat Button */
+.chat-button {
+position: fixed;
+bottom: 20px;
+right: 20px;
+width: 60px;
+height: 60px;
+border-radius: 4px;
+background: rgba(26, 26, 26, 0.8);
+border: 1px solid var(--ghosting);
+z-index: 150;
+transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+overflow: hidden;
+box-shadow:
+0 8px 32px rgba(0, 0, 0, 0.3),
+0 0 0 1px rgba(232, 231, 226, 0.05) inset;
+cursor: pointer;
+backdrop-filter: blur(var(--blur-radius));
+-webkit-backdrop-filter: blur(var(--blur-radius));
+transform: translateZ(0);
+animation: float-subtle 8s infinite ease-in-out;
+display: flex;
+align-items: center;
+justify-content: center;
+padding: 0;
+}
+
+@keyframes float-subtle {
+0%, 100% { transform: translateZ(0) translateY(0); }
+50% { transform: translateZ(0) translateY(-5px); }
+}
+
+.chat-button:hover {
+transform: translateY(-3px);
+box-shadow:
+0 12px 36px rgba(0, 0, 0, 0.4),
+0 0 0 1px rgba(232, 231, 226, 0.08) inset;
+}
+
+.chat-button:active {
+transform: translateY(1px);
+}
+
+.chat-button-icon {
+position: relative;
+z-index: 2;
+font-size: 28px;
+color: var(--accent);
+filter: drop-shadow(0 0 8px rgba(108, 166, 217, 0.5));
+}
+
+.chat-button-pulse {
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+width: 45px;
+height: 45px;
+background: var(--accent-lighter);
+border-radius: 50%;
+opacity: 0.4;
+z-index: 1;
+animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+0% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.4; }
+50% { transform: translate(-50%, -50%) scale(1.05); opacity: 0.2; }
+100% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.4; }
+}
+
+/* Chat Overlay */
+.chat-overlay {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(0, 0, 0, 0.5);
+backdrop-filter: blur(4px);
+-webkit-backdrop-filter: blur(4px);
+z-index: 200;
+display: flex;
+align-items: center;
+justify-content: center;
+opacity: 0;
+pointer-events: none;
+transition: opacity 0.4s ease-out;
+}
+
+.chat-overlay.visible {
+opacity: 1;
+pointer-events: all;
+}
+
+/* Chat Modal */
+.chat-modal {
+width: 90%;
+max-width: 800px;
+height: 80%;
+max-height: 600px;
+background: rgba(26, 26, 26, 0.9);
+border-radius: 4px;
+border: 1px solid var(--ghosting);
+overflow: hidden;
+box-shadow:
+0 20px 60px rgba(0, 0, 0, 0.5),
+0 0 0 1px rgba(232, 231, 226, 0.05) inset;
+backdrop-filter: blur(var(--blur-radius));
+-webkit-backdrop-filter: blur(var(--blur-radius));
+transform: scale(0.9);
+opacity: 0;
+transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+position: relative;
+}
+
+.chat-overlay.visible .chat-modal {
+transform: scale(1);
+opacity: 1;
+}
+
+.chat-modal-content {
+width: 100%;
+height: 100%;
+display: flex;
+flex-direction: column;
+padding: 24px;
+}
+
+.chat-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 16px;
+padding-bottom: 16px;
+border-bottom: 1px solid var(--ghosting);
+}
+
+.chat-title {
+display: flex;
+align-items: center;
+gap: 8px;
+}
+
+.chat-status-indicator {
+width: 10px;
+height: 10px;
+border-radius: 50%;
+background: var(--success);
+box-shadow: 0 0 10px rgba(90, 172, 90, 0.5);
+position: relative;
+}
+
+.chat-status-indicator::after {
+content: "";
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+border-radius: 50%;
+background: inherit;
+opacity: 0.3;
+animation: status-pulse 1.5s infinite;
+}
+
+@keyframes status-pulse {
+0% { transform: scale(1); opacity: 0.3; }
+50% { transform: scale(1.5); opacity: 0; }
+100% { transform: scale(1); opacity: 0.3; }
+}
+
+.chat-header h3 {
+margin: 0;
+font-size: var(--font-10);
+font-weight: 400;
+color: var(--graphite);
+letter-spacing: 0.3px;
+}
+
+.chat-controls {
+display: flex;
+gap: 6px;
+}
+
+.chat-close, .chat-minimize {
+background: none;
+border: none;
+color: var(--graphite-dim);
+cursor: pointer;
+font-size: 18px;
+padding: 0;
+display: flex;
+align-items: center;
+justify-content: center;
+width: 26px;
+height: 26px;
+border-radius: 50%;
+transition: all 0.2s ease;
+position: relative;
+}
+
+.chat-close:hover, .chat-minimize:hover {
+background: rgba(0, 0, 0, 0.3);
+color: var(--graphite);
+transform: translateY(-1px);
+}
+
+.chat-close:active, .chat-minimize:active {
+transform: translateY(1px);
+}
+
+.chat-close {
+color: rgba(255, 107, 107, 0.8);
+}
+
+.chat-messages {
+flex: 1;
+overflow-y: auto;
+padding-right: 8px;
+margin-bottom: 16px;
+scroll-behavior: smooth;
+}
+
+.chat-messages::-webkit-scrollbar {
+width: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+background: rgba(0, 0, 0, 0.1);
+border-radius: 2px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+background: var(--accent-lighter);
+border-radius: 2px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+background: var(--accent-light);
+}
+
+.message {
+margin-bottom: 18px;
+display: flex;
+flex-direction: column;
+position: relative;
+animation: message-appear 0.3s ease-out;
+}
+
+@keyframes message-appear {
+from { opacity: 0; transform: translateY(10px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+.message-content {
+max-width: 85%;
+padding: 12px 16px;
+border-radius: 4px;
+font-size: var(--font-9);
+line-height: 1.5;
+position: relative;
+box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.message-content p {
+margin: 0;
+}
+
+.message-content p + p {
+margin-top: 8px;
+}
+
+.message-time {
+font-size: var(--font-8);
+color: var(--graphite-dim);
+margin-top: 4px;
+opacity: 0.7;
+}
+
+.message.user {
+align-items: flex-end;
+}
+
+.message.user .message-content {
+background: linear-gradient(135deg, rgba(108, 166, 217, 0.15) 0%, rgba(108, 166, 217, 0.05) 100%);
+color: var(--graphite);
+border-bottom-right-radius: 0;
+border: 1px solid rgba(108, 166, 217, 0.1);
+}
+
+.message.user .message-time {
+margin-right: 8px;
+}
+
+.message.assistant {
+align-items: flex-start;
+}
+
+.message.assistant .message-content {
+background: linear-gradient(135deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.2) 100%);
+color: var(--graphite);
+border-bottom-left-radius: 0;
+border: 1px solid rgba(232, 231, 226, 0.05);
+}
+
+.message.assistant .message-time {
+margin-left: 8px;
+}
+
+.welcome-message .message-content {
+background: linear-gradient(135deg, rgba(90, 172, 90, 0.1) 0%, rgba(90, 172, 90, 0.05) 100%);
+border: 1px solid rgba(90, 172, 90, 0.15);
+}
+
+/* Typing indicator styles */
+.message.assistant.typing {
+margin-bottom: 10px;
+}
+
+.message.assistant.typing .message-content {
+background: transparent;
+border: none;
+box-shadow: none;
+padding: 8px 0;
+max-width: 70px;
+}
+
+.typing-indicator {
+display: flex;
+align-items: center;
+gap: 4px;
+}
+
+.typing-indicator span {
+display: inline-block;
+width: 8px;
+height: 8px;
+background-color: var(--accent);
+border-radius: 50%;
+opacity: 0.6;
+animation: typing-animation 1.5s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(1) {
+animation-delay: 0s;
+}
+
+.typing-indicator span:nth-child(2) {
+animation-delay: 0.3s;
+}
+
+.typing-indicator span:nth-child(3) {
+animation-delay: 0.6s;
+}
+
+@keyframes typing-animation {
+0%, 60%, 100% {
+transform: translateY(0);
+opacity: 0.6;
+}
+30% {
+transform: translateY(-4px);
+opacity: 1;
+}
+}
+
+.chat-input-container {
+display: flex;
+gap: 8px;
+background: rgba(0, 0, 0, 0.3);
+border-radius: 4px;
+padding: 6px 8px 6px 16px;
+border: 1px solid var(--ghosting);
+box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(232, 231, 226, 0.05) inset;
+transition: all 0.3s ease;
+}
+
+.chat-input-container:focus-within {
+border-color: var(--accent-lighter);
+box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(108, 166, 217, 0.2) inset;
+}
+
+.chat-input {
+flex: 1;
+background: transparent;
+border: none;
+outline: none;
+color: var(--graphite);
+font-size: var(--font-9);
+padding: 8px 0;
+font-family: 'IBM Plex Mono', monospace;
+}
+
+.chat-input::placeholder {
+color: var(--graphite-dim);
+opacity: 0.6;
+}
+
+.chat-send {
+background: var(--accent-lighter);
+border: none;
+color: var(--graphite);
+border-radius: 4px;
+width: 36px;
+height: 36px;
+display: flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+transition: all 0.2s ease;
+position: relative;
+overflow: hidden;
+}
+
+.chat-send::after {
+content: "";
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+height: 40%;
+background: rgba(232, 231, 226, 0.1);
+border-radius: 4px 4px 0 0;
+}
+
+.chat-send:hover {
+background: var(--accent-light);
+transform: translateY(-2px);
+box-shadow: 0 2px 8px rgba(108, 166, 217, 0.3);
+}
+
+.chat-send:active {
+transform: translateY(1px);
+}
+
+.send-icon {
+font-size: 16px;
+position: relative;
+z-index: 2;
+}
+
+/* API Settings Panel */
+.api-settings-panel {
+max-width: 380px;
+height: auto;
+background: rgba(26, 26, 26, 0.9);
+}
+
+.settings-container {
+padding: 5px 10px;
+}
+
+.settings-section {
+margin-bottom: 20px;
+}
+
+.settings-info {
+margin-bottom: 15px;
+border-left: 2px solid var(--accent-lighter);
+padding-left: 10px;
+font-size: 0.9em;
+}
+
+.settings-info p {
+margin: 5px 0;
+color: var(--graphite-dim);
+}
+
+.settings-info a {
+color: var(--accent);
+text-decoration: none;
+transition: all 0.2s ease;
+}
+
+.settings-info a:hover {
+text-decoration: underline;
+color: var(--accent-light);
+}
+
+.settings-header {
+display: flex;
+align-items: center;
+margin-bottom: 15px;
+}
+
+.settings-icon {
+font-size: 18px;
+margin-right: 10px;
+color: var(--accent);
+}
+
+.settings-header h4 {
+margin: 0;
+font-size: var(--font-10);
+font-weight: 400;
+color: var(--graphite);
+}
+
+.api-key-input-wrapper {
+position: relative;
+display: flex;
+align-items: center;
+}
+
+.api-key-input {
+width: 100%;
+padding: 8px 35px 8px 12px;
+border-radius: 4px;
+background: rgba(0, 0, 0, 0.3);
+border: 1px solid var(--ghosting);
+color: var(--graphite);
+font-family: 'IBM Plex Mono', monospace;
+letter-spacing: 1px;
+transition: all 0.2s ease;
+font-size: var(--font-9);
+}
+
+.api-key-input:focus {
+border-color: var(--accent);
+box-shadow: 0 0 0 2px rgba(108, 166, 217, 0.2);
+}
+
+.toggle-visibility-btn {
+position: absolute;
+right: 8px;
+background: none;
+border: none;
+color: var(--graphite-dim);
+cursor: pointer;
+font-size: 16px;
+padding: 2px;
+transition: all 0.2s ease;
+}
+
+.toggle-visibility-btn:hover {
+color: var(--graphite);
+}
+
+.input-container {
+margin-bottom: 15px;
+}
+
+.input-container label {
+display: block;
+margin-bottom: 6px;
+color: var(--graphite-dim);
+font-size: var(--font-9);
+}
+
+.api-select {
+width: 100%;
+padding: 8px 12px;
+border-radius: 4px;
+background: rgba(0, 0, 0, 0.3);
+border: 1px solid var(--ghosting);
+color: var(--graphite);
+transition: all 0.2s ease;
+font-family: 'IBM Plex Mono', monospace;
+font-size: var(--font-9);
+}
+
+.api-select:focus {
+border-color: var(--accent);
+box-shadow: 0 0 0 2px rgba(108, 166, 217, 0.2);
+}
+
+.button-container {
+display: flex;
+gap: 10px;
+margin-top: 15px;
+}
+
+.primary-button, .secondary-button {
+padding: 8px 15px;
+border-radius: 4px;
+border: none;
+cursor: pointer;
+font-weight: 400;
+transition: all 0.2s ease;
+flex-grow: 1;
+font-family: 'IBM Plex Mono', monospace;
+font-size: var(--font-9);
+}
+
+.primary-button {
+background: var(--accent);
+color: var(--bg-stock);
+}
+
+.primary-button:hover {
+background: var(--accent-light);
+transform: translateY(-1px);
+}
+
+.secondary-button {
+background: rgba(0, 0, 0, 0.3);
+color: var(--graphite-dim);
+border: 1px solid var(--ghosting);
+}
+
+.secondary-button:hover {
+color: var(--graphite);
+transform: translateY(-1px);
+}
+
+.api-status {
+margin-top: 15px;
+padding: 8px;
+border-radius: 4px;
+font-size: var(--font-9);
+display: none;
+}
+
+.api-status.success {
+background: rgba(90, 172, 90, 0.1);
+border: 1px solid rgba(90, 172, 90, 0.3);
+color: var(--success);
+display: block;
+}
+
+.api-status.error {
+background: rgba(255, 107, 107, 0.1);
+border: 1px solid rgba(255, 107, 107, 0.3);
+color: var(--error);
+display: block;
+}
+
+/* Mobile Styles */
+.mobile-controls {
+position: fixed;
+bottom: 20px;
+left: 50%;
+transform: translateX(-50%);
+display: flex;
+gap: 10px;
+z-index: 100;
+padding: 10px;
+border-radius: 4px;
+background: rgba(26, 26, 26, 0.8);
+border: 1px solid var(--ghosting);
+box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+backdrop-filter: blur(var(--blur-radius));
+-webkit-backdrop-filter: blur(var(--blur-radius));
+display: none;
+}
+
+.mobile-control-button {
+width: 56px;
+height: 56px;
+border-radius: 4px;
+background: rgba(26, 26, 26, 0.8);
+border: 1px solid var(--ghosting);
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 24px;
+color: var(--graphite);
+cursor: pointer;
+transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+position: relative;
+overflow: hidden;
+box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.mobile-control-button::after {
+content: "";
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+height: 50%;
+background: rgba(232, 231, 226, 0.05);
+border-radius: 4px 4px 0 0;
+pointer-events: none;
+}
+
+.mobile-control-button:hover {
+background: rgba(36, 36, 36, 0.8);
+transform: translateY(-3px);
+box-shadow:
+0 8px 15px rgba(0, 0, 0, 0.3),
+0 0 20px rgba(108, 166, 217, 0.15);
+border-color: var(--ghosting-med);
+}
+
+.mobile-control-button.active {
+background: rgba(108, 166, 217, 0.15);
+transform: translateY(-2px);
+box-shadow:
+0 5px 15px rgba(0, 0, 0, 0.3),
+0 0 30px rgba(108, 166, 217, 0.3);
+border-color: var(--accent-light);
+color: var(--graphite);
+text-shadow: 0 0 10px rgba(232, 231, 226, 0.5);
+}
+
+.mobile-control-button.active::after {
+background: rgba(232, 231, 226, 0.1);
+}
+
+/* Mobile action button (for image upload, etc.) */
+.mobile-action-button {
+padding: 8px 16px;
+background: rgba(26, 26, 26, 0.8);
+border: 1px solid var(--ghosting);
+border-radius: 4px;
+color: var(--graphite);
+cursor: pointer;
+font-size: var(--font-9);
+transition: all var(--transition-speed) ease;
+font-family: 'IBM Plex Mono', monospace;
+letter-spacing: 0.5px;
+font-weight: 400;
+box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+position: relative;
+overflow: hidden;
+}
+
+.mobile-action-button::after {
+content: "";
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+height: 40%;
+background: rgba(232, 231, 226, 0.05);
+border-radius: 4px 4px 0 0;
+pointer-events: none;
+}
+
+.mobile-action-button:hover {
+background: rgba(36, 36, 36, 0.8);
+transform: translateY(-2px) scale(1.02);
+box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25), 0 0 15px rgba(108, 166, 217, 0.1);
+border-color: var(--ghosting-med);
+}
+
+.mobile-action-button:active {
+transform: translateY(1px) scale(0.98);
+box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+background: rgba(16, 16, 16, 0.8);
+}
+
+/* Button ripple effect */
+.button-ripple {
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+width: 0;
+height: 0;
+background: rgba(232, 231, 226, 0.3);
+border-radius: 50%;
+opacity: 1;
+animation: ripple-anim 0.8s ease-out;
+pointer-events: none;
+}
+
+@keyframes ripple-anim {
+0% {
+width: 0;
+height: 0;
+opacity: 0.8;
+}
+100% {
+width: 200%;
+height: 200%;
+opacity: 0;
+}
+}
+
+/* Mobile panels */
+.mobile-panel {
+position: fixed;
+bottom: 90px;
+left: 50%;
+transform: translateX(-50%);
+width: 85%;
+max-width: 320px;
+background: rgba(26, 26, 26, 0.9);
+border-radius: 4px;
+border: 1px solid var(--ghosting);
+padding: 20px;
+z-index: 90;
+display: none;
+box-shadow:
+0 20px 40px rgba(0, 0, 0, 0.4),
+0 0 0 1px rgba(232, 231, 226, 0.05) inset;
+backdrop-filter: blur(calc(var(--blur-radius) * 1.5));
+-webkit-backdrop-filter: blur(calc(var(--blur-radius) * 1.5));
+opacity: 0;
+transform: translateX(-50%) translateY(20px) scale(0.95);
+transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.mobile-panel.active {
+display: block;
+opacity: 1;
+transform: translateX(-50%) translateY(0) scale(1);
+}
+
+/* Panel appearance animation */
+@keyframes panel-appear {
+0% {
+opacity: 0;
+transform: translateX(-50%) translateY(20px) scale(0.95);
+}
+100% {
+opacity: 1;
+transform: translateX(-50%) translateY(0) scale(1);
+}
+}
+
+@keyframes fade-in {
+from { opacity: 0; transform: translateY(10px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-out {
+from { opacity: 1; transform: translateY(0); }
+to { opacity: 0; transform: translateY(10px); }
+}
+
+.button-active {
+transform: scale(0.95) !important;
+box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) !important;
+background: rgba(16, 16, 16, 0.8) !important;
+}
+
+/* Terminal overlay */
+.terminal-overlay {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(0, 0, 0, 0.8);
+z-index: 500;
+display: none;
+opacity: 0;
+transition: opacity 0.3s ease;
+backdrop-filter: blur(2px);
+-webkit-backdrop-filter: blur(2px);
+}
+
+.terminal-overlay.active {
+display: block;
+opacity: 1;
+}
+
+.terminal-window {
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+width: 80%;
+max-width: 800px;
+height: 70%;
+max-height: 500px;
+background: rgba(0, 0, 0, 0.9);
+border: 1px solid var(--ghosting);
+border-radius: 4px;
+box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+display: flex;
+flex-direction: column;
+overflow: hidden;
+}
+
+.terminal-header {
+height: 30px;
+background: rgba(26, 26, 26, 0.8);
+border-bottom: 1px solid var(--ghosting);
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 0 10px;
+}
+
+.terminal-title {
+font-size: var(--font-9);
+color: var(--graphite-dim);
+text-transform: uppercase;
+letter-spacing: 1px;
+}
+
+.terminal-close {
+cursor: pointer;
+font-size: var(--font-11);
+color: var(--graphite-dim);
+}
+
+.terminal-close:hover {
+color: var(--error);
+}
+
+.terminal-content {
+flex: 1;
+padding: 15px;
+overflow-y: auto;
+font-family: 'IBM Plex Mono', monospace;
+font-size: var(--font-9);
+color: var(--graphite);
+line-height: 1.5;
+}
+
+.terminal-input-line {
+display: flex;
+margin-top: 10px;
+}
+
+.terminal-prompt {
+color: var(--accent);
+margin-right: 8px;
+}
+
+.terminal-input {
+background: transparent;
+border: none;
+outline: none;
+color: var(--graphite);
+font-family: 'IBM Plex Mono', monospace;
+font-size: var(--font-9);
+flex: 1;
+}
+
+/* Status bar */
+.status-bar {
+position: fixed;
+bottom: 0;
+left: 0;
+right: 0;
+padding: 8px 20px;
+background: rgba(0, 0, 0, 0.5);
+border-top: 1px solid var(--ghosting);
+font-size: var(--font-8);
+display: flex;
+justify-content: space-between;
+z-index: 100;
+font-family: 'IBM Plex Mono', monospace;
+color: var(--graphite-dim);
+}
+
+.status-item {
+display: inline-block;
+margin-right: 20px;
+}
+
+.status-indicator {
+display: inline-block;
+width: 8px;
+height: 8px;
+border-radius: 50%;
+margin-right: 6px;
+vertical-align: middle;
+}
+
+.status-active {
+background-color: var(--success);
+box-shadow: 0 0 5px var(--success);
+}
+
+.status-warning {
+background-color: var(--warning);
+box-shadow: 0 0 5px var(--warning);
+}
+
+.status-error {
+background-color: var(--error);
+box-shadow: 0 0 5px var(--error);
+}
+
+/* Strictly enforce mobile/desktop mode distinction */
+body:not(.mobile-mode) .mobile-controls,
+body:not(.mobile-mode) .mobile-panel {
+display: none !important;
+}
+
+body.mobile-mode .control-panel:not(.image-upload-panel) {
+display: none !important;
+}
+
+body.mobile-mode .mobile-controls {
+display: flex;
+gap: 12px;
+padding: 12px 16px;
+border-radius: 4px; /* Consistent with desktop panels */
+box-shadow:
+0 10px 25px rgba(0, 0, 0, 0.25),
+0 5px 10px rgba(0, 0, 0, 0.15),
+0 0 0 1px rgba(232, 231, 226, 0.05) inset;
+animation: float 6s infinite ease-in-out;
+transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+@keyframes float {
+0%, 100% { transform: translateX(-50%) translateY(0); }
+50% { transform: translateX(-50%) translateY(-5px); }
+}
+
+body.mobile-mode .mobile-panel {
+position: fixed;
+bottom: 90px; /* Adjusted to avoid overlap with controls */
+left: 50%;
+transform: translateX(-50%);
+width: 85%;
+max-width: 320px;
+background: rgba(26, 26, 26, 0.9); /* Consistent with chat modal */
+border-radius: 4px;
+border: 1px solid var(--ghosting);
+padding: 20px;
+z-index: 90;
+display: none;
+box-shadow:
+0 20px 40px rgba(0, 0, 0, 0.4),
+0 0 0 1px rgba(232, 231, 226, 0.05) inset;
+backdrop-filter: blur(calc(var(--blur-radius) * 1.5));
+-webkit-backdrop-filter: blur(calc(var(--blur-radius) * 1.5));
+opacity: 0;
+transform: translateX(-50%) translateY(20px) scale(0.95);
+transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+body.mobile-mode .mobile-panel.active {
+display: block;
+opacity: 1;
+transform: translateX(-50%) translateY(0) scale(1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+.settings-panel {
+width: 260px;
+top: 10px;
+right: 10px;
+}
+
+.shape-controls, .color-controls {
+bottom: 10px;
+padding: 15px;
+}
+
+.shape-controls {
+left: 10px;
+}
+
+.color-controls {
+right: 10px;
+}
+
+.button-group {
+gap: 6px;
+}
+
+button {
+padding: 8px 14px;
+font-size: var(--font-8);
+}
+}
+</style>
+</head>
+<body>
+<!-- Debug Console -->
+<div id="debugConsole"></div>
+
+<!-- Loading Screen -->
+<div class="loading-screen" id="loadingScreen">
+<div class="loading-spinner"></div>
+<div class="loading-text">Initializing DeepFrame Network</div>
+</div>
+
+<div id="particleCanvas"></div>
+
+<button id="fullscreenBtn" class="terminal-button">Fullscreen</button>
+<button id="imageBtn" class="terminal-button" style="top: 70px;">Image Upload</button>
+<button id="apiSettingsBtn" class="terminal-button" style="top: 120px;">API Settings</button>
+
+<!-- Shape Mode Control -->
+<div class="control-panel shape-controls">
+<h3>Shape Mode</h3>
+<div class="button-group" id="shapeModes">
+<button data-mode="free" class="active">Free</button>
+<button data-mode="sphere">Sphere</button>
+<button data-mode="ring">Ring</button>
+<button data-mode="donut">Donut</button>
+<button data-mode="toroid">Toroid</button>
+<button data-mode="entanglement">Entangle</button>
+<button data-mode="wave">Wave</button>
+</div>
+</div>
+
+<!-- Color Mode Control -->
+<div class="control-panel color-controls">
+<h3>Color Mode</h3>
+<div class="button-group" id="colorModes">
+<button data-mode="default" class="active">Default</button>
+<button data-mode="spectrum">Spectrum</button>
+<button data-mode="pulse">Pulse</button>
+<button data-mode="quantum">Quantum</button>
+</div>
+<div class="toggle-container">
+<label for="monoToggle" class="toggle-label">Monochrome</label>
+<label class="switch">
+<input type="checkbox" id="monoToggle" checked>
+<span class="slider round"></span>
+</label>
+</div>
+<div class="toggle-container">
+<label for="audioToggle" class="toggle-label">Audio Reactive</label>
+<label class="switch">
+<input type="checkbox" id="audioToggle">
+<span class="slider round"></span>
+</label>
+</div>
+<div class="toggle-container">
+<label for="focusToggle" class="toggle-label">Focus Mode</label>
+<label class="switch">
+<input type="checkbox" id="focusToggle">
+<span class="slider round"></span>
+</label>
+</div>
+<div id="audioControls" class="audio-controls" style="display:none;">
+<div class="audio-visualizer">
+<div class="audio-bars"></div>
+</div>
+<div class="slider-container">
+<div class="slider-header">
+<label>Audio Sensitivity</label>
+<span class="slider-value" id="sensitivityValue">3.00</span>
+</div>
+<input type="range" id="sensitivitySlider" min="1" max="10" step="0.5" value="3">
+</div>
+</div>
+</div>
+
+<!-- Settings Panel -->
+<div class="control-panel settings-panel" id="settingsPanel">
+<h3>DeepFrame Settings</h3>
+
+<div class="tabs">
+<button class="tab active" data-tab="particles">Particles</button>
+<button class="tab" data-tab="interactions">Interactions</button>
+<button class="tab" data-tab="effects">Effects</button>
+</div>
+
+<div id="particles-tab" class="tab-content">
+<!-- Will be populated by JS -->
+</div>
+
+<div id="interactions-tab" class="tab-content" style="display:none">
+<!-- Will be populated by JS -->
+</div>
+
+<div id="effects-tab" class="tab-content" style="display:none">
+<!-- Will be populated by JS -->
+</div>
+
+<div style="margin-top: 20px;">
+<button id="toggleDebug">Show Debug Console</button>
+</div>
+</div>
+
+<div class="deepframe-logo">DeepFrame Intelligence</div>
+
+<!-- API Settings Panel -->
+<div class="control-panel api-settings-panel" style="display: none;">
+<h3>API Settings</h3>
+<div class="settings-container">
+<div class="settings-section">
+<div class="settings-header">
+<span class="settings-icon">🔑</span>
+<h4>DeepSeek API Configuration</h4>
+</div>
+<div class="settings-info">
+<p>Enter your DeepSeek API key to enable AI chat functionality with DeepSeek R1.</p>
+<p><small>You can get an API key from <a href="https://platform.deepseek.com" target="_blank" rel="noopener noreferrer">platform.deepseek.com</a></small></p>
+</div>
+<div class="input-container">
+<label for="deepseekApiKey">API Key</label>
+<div class="api-key-input-wrapper">
+<input type="password" id="deepseekApiKey" placeholder="Enter your DeepSeek API key" class="api-key-input">
+<button class="toggle-visibility-btn" id="toggleApiVisibility" aria-label="Toggle visibility">👁️</button>
+</div>
+</div>
+<div class="input-container">
+<label for="apiModel">Model</label>
+<select id="apiModel" class="api-select">
+<option value="deepseek-r1">DeepSeek R1</option>
+<option value="deepseek-r1-lite">DeepSeek R1 Lite</option>
+</select>
+</div>
+<div class="button-container">
+<button id="saveApiSettings" class="primary-button">Save Settings</button>
+<button id="testApiConnection" class="secondary-button">Test Connection</button>
+</div>
+<div id="apiStatus" class="api-status"></div>
+</div>
+</div>
+</div>
+
+<!-- Enhanced Image Upload Panel -->
+<div class="control-panel image-upload-panel" style="display: none;">
+<h3>Image to Particles</h3>
+<div class="image-upload-container">
+<div class="image-upload-intro">
+<p>Transform images into dynamic particle formations</p>
+</div>
+
+<label class="image-upload-button">
+<span class="upload-icon">📁</span>
+<span class="upload-text">Select Image</span>
+<input type="file" class="image-upload-input" id="imageUpload" accept="image/png, image/jpeg, image/webp">
+</label>
+
+<div class="image-preview" id="imagePreview">
+<img id="previewImg" src="#" alt="Preview">
+<div class="preview-overlay">
+<span class="preview-resolution" id="previewResolution"></span>
+</div>
+</div>
+
+<div class="slider-container image-density-slider" id="densitySliderContainer">
+<div class="slider-header">
+<label>Sampling Density</label>
+<span class="slider-value" id="densityValue">5.00</span>
+</div>
+<input type="range" id="densitySlider" min="1" max="10" step="0.5" value="5">
+<div class="slider-labels">
+<span>Lower</span>
+<span>Higher</span>
+</div>
+</div>
+
+<div class="sampling-modes-container">
+<label class="section-label">Sampling Method</label>
+<div class="button-group" id="samplingModes">
+<button data-mode="color" class="active" title="Full color mapping">Color</button>
+<button data-mode="brightness" title="Density based on brightness">Brightness</button>
+<button data-mode="edges" title="Highlight image edges">Edge Detect</button>
+</div>
+</div>
+
+<div class="image-actions">
+<button id="resetParticles" class="image-action-button reset-button">
+<span class="action-icon">↺</span> Reset
+</button>
+<button id="closeImagePanel" class="image-action-button close-button">
+<span class="action-icon">✕</span> Close
+</button>
+</div>
+</div>
+</div>
+
+<!-- Chat Button -->
+<button id="chatBtn" class="chat-button">
+<span class="chat-button-icon">💬</span>
+<span class="chat-button-pulse"></span>
+</button>
+
+<!-- Chat Modal Overlay -->
+<div id="chatOverlay" class="chat-overlay">
+<!-- Modal Chat Interface -->
+<div class="chat-modal" id="chatModal">
+<div class="chat-modal-content">
+<div class="chat-header">
+<div class="chat-title">
+<div class="chat-status-indicator"></div>
+<h3>DeepFrame Assistant</h3>
+</div>
+<div class="chat-controls">
+<button class="chat-close" id="chatClose" aria-label="Close Chat">×</button>
+</div>
+</div>
+<div class="chat-messages" id="chatMessages">
+<div class="message assistant welcome-message">
+<div class="message-content">
+<p>Welcome to the DeepFrame Intelligence Simulator. How can I assist you today?</p>
+</div>
+<span class="message-time">Just now</span>
+</div>
+</div>
+<div class="chat-input-container">
+<input type="text" class="chat-input" id="chatInput" placeholder="Ask about the particle simulation...">
+<button class="chat-send" id="chatSend" aria-label="Send Message">
+<span class="send-icon">↑</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Mobile Controls - Enhanced & Polished -->
+<div class="mobile-controls">
+<button class="mobile-control-button" data-panel="shape" aria-label="Shape Controls">
+<span role="img" aria-hidden="true">⬡</span>
+</button>
+<button class="mobile-control-button" data-panel="color" aria-label="Color Controls">
+<span role="img" aria-hidden="true">🎨</span>
+</button>
+<button class="mobile-control-button" data-panel="settings" aria-label="Settings">
+<span role="img" aria-hidden="true">⚙️</span>
+</button>
+<button class="mobile-control-button" id="mobileToggle" aria-label="Toggle Mobile Mode">
+<span role="img" aria-hidden="true">📱</span>
+</button>
+</div>
+
+<!-- Mobile Panels - Enhanced & Polished -->
+<div class="mobile-panel" id="shape-panel">
+<h3>Shape Mode</h3>
+<div class="button-group">
+<button data-mode="free" class="active">Free</button>
+<button data-mode="sphere">Sphere</button>
+<button data-mode="ring">Ring</button>
+<button data-mode="donut">Donut</button>
+<button data-mode="toroid">Toroid</button>
+<button data-mode="wave">Wave</button>
+</div>
+<div class="slider-container">
+<div class="slider-header">
+<label>Sphere Radius</label>
+<span class="slider-value">15.00</span>
+</div>
+<input type="range" min="5" max="30" step="1" value="15">
+</div>
+</div>
+
+<div class="mobile-panel" id="color-panel">
+<h3>Color Mode</h3>
+<div class="button-group">
+<button data-mode="default" class="active">Default</button>
+<button data-mode="spectrum">Spectrum</button>
+<button data-mode="pulse">Pulse</button>
+<button data-mode="quantum">Quantum</button>
+</div>
+<div class="toggle-container">
+<label class="toggle-label">Monochrome</label>
+<label class="switch">
+<input type="checkbox" id="mobileMono" checked>
+<span class="slider round"></span>
+</label>
+</div>
+<div class="toggle-container">
+<label class="toggle-label">Audio Reactive</label>
+<label class="switch">
+<input type="checkbox" id="mobileAudio">
+<span class="slider round"></span>
+</label>
+</div>
+</div>
+
+<div class="mobile-panel" id="settings-panel">
+<h3>Performance Settings</h3>
+<div class="slider-container">
+<div class="slider-header">
+<label>Particle Count</label>
+<span class="slider-value">3000</span>
+</div>
+<input type="range" min="500" max="8000" step="100" value="3000">
+</div>
+<div class="slider-container">
+<div class="slider-header">
+<label>Particle Size</label>
+<span class="slider-value">0.40</span>
+</div>
+<input type="range" min="0.1" max="0.8" step="0.01" value="0.4">
+</div>
+<div class="slider-container">
+<div class="slider-header">
+<label>Movement Speed</label>
+<span class="slider-value">0.01</span>
+</div>
+<input type="range" min="0.001" max="0.05" step="0.001" value="0.01">
+</div>
+<div class="toggle-container">
+<label class="toggle-label">Image Upload</label>
+<button id="mobileImageBtn" class="mobile-action-button">Open</button>
+</div>
+</div>
+
+<!-- Status Bar -->
+<footer class="status-bar">
+<span class="status-item">DEEPFRAME INTELLIGENCE v0.1.0 ░░░ NETWORK: ACTIVE ░░░ <span id="particleCountDisplay">PARTICLES: 1500</span></span>
+<span class="status-item" id="systemTime">TIME: 00:00:00</span>
+</footer>
+
+<script>
+// Custom console logger that also shows in debug panel
+const debugConsole = document.getElementById('debugConsole');
+const originalConsole = {
+log: console.log,
+error: console.error,
+warn: console.warn,
+info: console.info
+};
+
+function addDebugMessage(message, type = 'info') {
+const msgElement = document.createElement('div');
+msgElement.classList.add('debug-message', `debug-${type}`);
+msgElement.textContent = message;
+debugConsole.appendChild(msgElement);
+debugConsole.scrollTop = debugConsole.scrollHeight;
+}
+
+// Override console methods
+console.log = function(...args) {
+originalConsole.log(...args);
+addDebugMessage(args.map(x => typeof x === 'object' ? JSON.stringify(x) : x).join(' '), 'info');
+};
+
+console.error = function(...args) {
+originalConsole.error(...args);
+addDebugMessage(args.map(x => typeof x === 'object' ? JSON.stringify(x) : x).join(' '), 'error');
+};
+
+console.warn = function(...args) {
+originalConsole.warn(...args);
+addDebugMessage(args.map(x => typeof x === 'object' ? JSON.stringify(x) : x).join(' '), 'warning');
+};
+
+// Toggle debug console
+document.getElementById('toggleDebug').addEventListener('click', () => {
+if (debugConsole.style.display === 'none') {
+debugConsole.style.display = 'block';
+document.getElementById('toggleDebug').textContent = 'Hide Debug Console';
+} else {
+debugConsole.style.display = 'none';
+document.getElementById('toggleDebug').textContent = 'Show Debug Console';
+}
+});
+
+// Log page load info
+console.log("Page loaded at " + new Date().toLocaleTimeString());
+window.addEventListener('error', function(e) {
+console.error('Global error:', e.message, 'at', e.filename, 'line', e.lineno);
+});
+
+// Update system time in status bar
+function updateSystemTime() {
+const now = new Date();
+const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const systemTimeElement = document.getElementById('systemTime');
+if (systemTimeElement) {
+systemTimeElement.textContent = `TIME: ${timeString}`;
+}
+}
+setInterval(updateSystemTime, 1000);
+updateSystemTime();
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+// Log that DOM is loaded
+console.log("DOM fully loaded");
+
+// Check if THREE is available
+if (typeof THREE === 'undefined') {
+console.error("THREE.js not loaded! Check your internet connection or the CDN status.");
+alert("THREE.js library failed to load. Please refresh the page or check your internet connection.");
+return;
+}
+
+console.log("THREE.js loaded successfully, version:", THREE.REVISION);
+
+// Loading screen handlers
+const loadingScreen = document.getElementById('loadingScreen');
+
+function hideLoading() {
+console.log("Hiding loading screen");
+loadingScreen.classList.add('hidden');
+setTimeout(() => {
+loadingScreen.style.display = 'none';
+}, 500);
+}
+
+// Default settings
+const settings = {
+// Particle properties
+particleCount: 1500, // Lower for better performance
+particleSize: 0.35,
+sphereRadius: 15,
+
+// Connections
+connectionDistance: 5,
+connectionOpacity: 0.25,
+maxConnections: 10000,
+
+// Movement
+movementSpeed: 0.01,
+containmentForce: 0.05,
+velocityDamping: 0.95,
+
+// Interactions
+interactionStrength: 0.12,
+interactionRadius: 12,
+
+// Effects
+pulseFrequency: 0.5,
+pulseStrength: 0.12,
+waveAmplitude: 0.8,
+waveFrequency: 0.3,
+entanglementStrength: 0.4,
+entanglementDistance: 15,
+
+// Quantum effects
+quantumFluctuation: 0.05,
+quantumProbability: 0.3,
+toroidRadius: 12,
+toroidTubeRadius: 3.5
+};
+
+// Mode states
+let shapeMode = 'free';
+let colorMode = 'default';
+let activeTab = 'particles';
+let isInitializing = true;
+let isMonochrome = true; // Default to monochrome mode
+let isAudioReactive = false; // Audio reactivity flag
+let audioContext = null; // Audio context
+let audioAnalyser = null; // Audio analyser node
+let audioData = null; // Audio frequency data
+let mediaStream = null; // Media stream for microphone
+
+try {
+// Initialize Three.js
+console.log("Initializing Three.js scene");
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 30;
+
+// Create renderer with better performance settings
+const renderer = new THREE.WebGLRenderer({
+antialias: true,
+alpha: true,
+powerPreference: "high-performance"
+});
+
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x000000, 0); // Transparent background
+
+// Add renderer to DOM
+const container = document.getElementById('particleCanvas');
+if (!container) {
+throw new Error("Container element #particleCanvas not found!");
+}
+
+container.appendChild(renderer.domElement);
+console.log("Renderer added to DOM");
+
+// Particles setup
+let particleSystem;
+let connectionsLines;
+let velocities;
+let targetPositions = null;
+let originalPositions = null; // Store original positions for entanglement
+let entanglementPairs = null; // Store pairs for entanglement
+let frameSkipCounter = 0;
+let mouseX = 0;
+let mouseY = 0;
+let mouseIsMoving = false;
+let mouseMovementTimeout;
+let frameCount = 0;
+let animationId = null;
+
+function initParticles() {
+console.log("Initializing particle system");
+try {
+// Cleanup previous system if it exists
+if (particleSystem) {
+console.log("Removing previous particle system");
+scene.remove(particleSystem);
+scene.remove(connectionsLines);
+
+particleSystem.geometry.dispose();
+particleSystem.material.dispose();
+connectionsLines.geometry.dispose();
+connectionsLines.material.dispose();
+}
+
+// Log particle count
+console.log(`Creating ${settings.particleCount} particles`);
+const particleCountDisplay = document.getElementById('particleCountDisplay');
+if (particleCountDisplay) {
+particleCountDisplay.textContent = `PARTICLES: ${settings.particleCount}`;
+}
+
+// Create particles
+const particleCount = settings.particleCount;
+const particles = new THREE.BufferGeometry();
+const positions = new Float32Array(particleCount * 3);
+const colors = new Float32Array(particleCount * 3);
+velocities = new Float32Array(particleCount * 3);
+originalPositions = new Float32Array(particleCount * 3);
+
+// Create entanglement pairs if using that mode
+if (shapeMode === 'entanglement') {
+console.log("Creating entanglement pairs");
+entanglementPairs = new Int32Array(particleCount);
+// Create pairs of entangled particles
+for (let i = 0; i < particleCount; i += 2) {
+if (i + 1 < particleCount) {
+entanglementPairs[i] = i + 1;
+entanglementPairs[i + 1] = i;
+} else { // Handle odd number of particles
+entanglementPairs[i] = i;
+}
+}
+} else {
+entanglementPairs = null;
+}
+
+// Initialize particle positions, colors, and velocities
+for (let i = 0; i < particleCount; i++) {
+const i3 = i * 3;
+const radius = settings.sphereRadius;
+
+// Initial random position
+const theta = Math.random() * Math.PI * 2;
+const phi = Math.acos(2 * Math.random() - 1);
+const r = radius * Math.cbrt(Math.random());
+
+positions[i3] = r * Math.sin(phi) * Math.cos(theta);
+positions[i3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+positions[i3 + 2] = r * Math.cos(phi);
+
+// Store original positions for reference
+originalPositions[i3] = positions[i3];
+originalPositions[i3 + 1] = positions[i3 + 1];
+originalPositions[i3 + 2] = positions[i3 + 2];
+
+if (isMonochrome) {
+// Monochromatic color scheme - white particles
+colors[i3] = 1.0; // R
+colors[i3 + 1] = 1.0; // G
+colors[i3 + 2] = 1.0; // B
+} else {
+// Default quantum blue color scheme
+colors[i3] = 0.2; // R
+colors[i3 + 1] = 0.5; // G
+colors[i3 + 2] = 1.0; // B
+}
+
+// Initialize velocities
+velocities[i3] = (Math.random() - 0.5) * 0.01;
+velocities[i3 + 1] = (Math.random() - 0.5) * 0.01;
+velocities[i3 + 2] = (Math.random() - 0.5) * 0.01;
+}
+
+// Create BufferAttributes for the geometry
+particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+// Create particle material with vertex colors
+const material = new THREE.PointsMaterial({
+size: settings.particleSize,
+vertexColors: true,
+transparent: true,
+opacity: 0.8,
+blending: THREE.AdditiveBlending,
+sizeAttenuation: true
+});
+
+// Create the particle system
+particleSystem = new THREE.Points(particles, material);
+scene.add(particleSystem);
+console.log("Particle system created and added to scene");
+
+// Create connections material
+const connectionsMaterial = new THREE.LineBasicMaterial({
+color: isMonochrome ? 0xE8E7E2 : 0x6CA6D9, // Use --graphite for mono, --accent for color
+transparent: true,
+opacity: settings.connectionOpacity * (isMonochrome ? 0.3 : 0.5),
+blending: THREE.AdditiveBlending
+});
+
+// Create connections geometry - start with empty position buffer
+const connectionsGeometry = new THREE.BufferGeometry();
+const emptyPositions = new Float32Array(6); // Just a single segment to initialize
+connectionsGeometry.setAttribute('position', new THREE.BufferAttribute(emptyPositions, 3));
+
+connectionsLines = new THREE.LineSegments(connectionsGeometry, connectionsMaterial);
+scene.add(connectionsLines);
+console.log("Connection lines created and added to scene");
+
+isInitializing = false;
+console.log("Particle initialization complete");
+
+// Hide loading screen once first init is complete
+hideLoading();
+} catch (error) {
+console.error("Error in initParticles:", error.message);
+hideLoading();
+alert("Error initializing particles: " + error.message);
+}
+}
+
+// Shape functions
+function createSphere() {
+console.log("Creating sphere shape");
+const particleCount = settings.particleCount;
+const targetPositions = new Float32Array(particleCount * 3);
+
+for (let i = 0; i < particleCount; i++) {
+const i3 = i * 3;
+const phi = Math.acos(-1 + (2 * i) / particleCount);
+const theta = Math.sqrt(particleCount * Math.PI) * phi;
+const radius = settings.sphereRadius;
+
+targetPositions[i3] = radius * Math.cos(theta) * Math.sin(phi);
+targetPositions[i3 + 1] = radius * Math.sin(theta) * Math.sin(phi);
+targetPositions[i3 + 2] = radius * Math.cos(phi);
+}
+
+return targetPositions;
+}
+
+// Audio-reactive sphere that responds to sound input
+function createAudioReactiveSphere() {
+console.log("Creating audio-reactive sphere");
+const particleCount = settings.particleCount;
+const targetPositions = new Float32Array(particleCount * 3);
+
+for (let i = 0; i < particleCount; i++) {
+const i3 = i * 3;
+const phi = Math.acos(-1 + (2 * i) / particleCount);
+const theta = Math.sqrt(particleCount * Math.PI) * phi;
+const baseRadius = settings.sphereRadius;
+
+// Create sphere with default radius first
+targetPositions[i3] = baseRadius * Math.cos(theta) * Math.sin(phi);
+targetPositions[i3 + 1] = baseRadius * Math.sin(theta) * Math.sin(phi);
+targetPositions[i3 + 2] = baseRadius * Math.cos(phi);
+}
+
+return targetPositions;
+}
+
+function createRing() {
+console.log("Creating ring shape");
+const particleCount = settings.particleCount;
+const targetPositions = new Float32Array(particleCount * 3);
+const radius = settings.sphereRadius;
+
+for (let i = 0; i < particleCount; i++) {
+const i3 = i * 3;
+const angle = (i / particleCount) * Math.PI * 2;
+
+targetPositions[i3] = radius * Math.cos(angle);
+targetPositions[i3 + 1] = radius * Math.sin(angle);
+targetPositions[i3 + 2] = 0;
+}
+
+return targetPositions;
+}
+
+function createDonut() {
+console.log("Creating donut shape");
+const particleCount = settings.particleCount;
+const targetPositions = new Float32Array(particleCount * 3);
+const torusRadius = 10;
+const tubeRadius = 3;
+
+for (let i = 0; i < particleCount; i++) {
+const i3 = i * 3;
+const u = (i / particleCount) * Math.PI * 2;
+const v = (Math.floor(i / 20) / Math.floor(particleCount / 20)) * Math.PI * 2;
+
+targetPositions[i3] = (torusRadius + tubeRadius * Math.cos(v)) * Math.cos(u);
+targetPositions[i3 + 1] = (torusRadius + tubeRadius * Math.cos(v)) * Math.sin(u);
+targetPositions[i3 + 2] = tubeRadius * Math.sin(v);
+}
+
+return targetPositions;
+}
+
+function createToroid() {
+console.log("Creating toroid shape");
+const particleCount = settings.particleCount;
+const targetPositions = new Float32Array(particleCount * 3);
+const torusRadius = settings.toroidRadius;
+const tubeRadius = settings.toroidTubeRadius;
+
+for (let i = 0; i < particleCount; i++) {
+const i3 = i * 3;
+// Use more precise distribution
+const u = (i / particleCount) * Math.PI * 2;
+const v = (i % 100 / 100) * Math.PI * 2;
+
+targetPositions[i3] = (torusRadius + tubeRadius * Math.cos(v)) * Math.cos(u);
+targetPositions[i3 + 1] = (torusRadius + tubeRadius * Math.cos(v)) * Math.sin(u);
+targetPositions[i3 + 2] = tubeRadius * Math.sin(v);
+}
+
+return targetPositions;
+}
+
+function createWave() {
+console.log("Creating wave shape");
+const particleCount = settings.particleCount;
+const targetPositions = new Float32Array(particleCount * 3);
+const radius = settings.sphereRadius;
+
+// Create a wave pattern along a plane
+for (let i = 0; i < particleCount; i++) {
+const i3 = i * 3;
+
+// Create grid-like distribution
+const gridSize = Math.ceil(Math.sqrt(particleCount));
+const x = (i % gridSize) - gridSize / 2;
+const z = Math.floor(i / gridSize) - gridSize / 2;
+
+// Normalize to radius
+const normalizedX = (x / (gridSize / 2)) * radius;
+const normalizedZ = (z / (gridSize / 2)) * radius;
+
+targetPositions[i3] = normalizedX;
+targetPositions[i3 + 1] = 0; // Will be animated with wave
+targetPositions[i3 + 2] = normalizedZ;
+}
+
+return targetPositions;
+}
+
+function createEntanglement() {
+console.log("Creating entanglement shape");
+const particleCount = settings.particleCount;
+const targetPositions = new Float32Array(particleCount * 3);
+const radius = settings.sphereRadius;
+
+// Initialize particles in pairs across the sphere
+for (let i = 0; i < particleCount; i += 2) {
+const i3 = i * 3;
+if (i + 1 >= particleCount) continue; // Skip if no pair for the last particle
+const j3 = (i + 1) * 3;
+
+// Create a random point on the sphere
+const theta = Math.random() * Math.PI * 2;
+const phi = Math.acos(2 * Math.random() - 1);
+const x = radius * Math.sin(phi) * Math.cos(theta);
+const y = radius * Math.sin(phi) * Math.sin(theta);
+const z = radius * Math.cos(phi);
+
+// First particle
+targetPositions[i3] = x;
+targetPositions[i3 + 1] = y;
+targetPositions[i3 + 2] = z;
+
+// Second particle (180 degrees opposite)
+targetPositions[j3] = -x;
+targetPositions[j3 + 1] = -y;
+targetPositions[j3 + 2] = -z;
+}
+
+return targetPositions;
+}
+
+function updateTargetPositions() {
+console.log(`Updating target positions for shape mode: ${shapeMode}`);
+switch (shapeMode) {
+case 'sphere':
+if (isAudioReactive) {
+targetPositions = createAudioReactiveSphere();
+} else {
+targetPositions = createSphere();
+}
+break;
+case 'ring':
+targetPositions = createRing();
+break;
+case 'donut':
+targetPositions = createDonut();
+break;
+case 'toroid':
+targetPositions = createToroid();
+break;
+case 'wave':
+targetPositions = createWave();
+break;
+case 'entanglement':
+// Reset entanglement pairs
+entanglementPairs = new Int32Array(settings.particleCount);
+for (let i = 0; i < settings.particleCount; i += 2) {
+if (i + 1 < settings.particleCount) {
+entanglementPairs[i] = i + 1;
+entanglementPairs[i + 1] = i;
+} else {
+entanglementPairs[i] = i;
+}
+}
+targetPositions = createEntanglement();
+break;
+default:
+targetPositions = null;
+console.log("Free mode activated, no target positions");
+break;
+}
+}
+
+// Animation loop
+function animate() {
+try {
+animationId = requestAnimationFrame(animate);
+frameCount++;
+
+if (!particleSystem || !particleSystem.geometry || !particleSystem.geometry.attributes ||
+!particleSystem.geometry.attributes.position) {
+console.warn("Animation skipped: particle system not properly initialized");
+return; // Skip if not properly initialized
+}
+
+const positions = particleSystem.geometry.attributes.position.array;
+const colors = particleSystem.geometry.attributes.color.array;
+const particleCount = settings.particleCount;
+
+// Update target positions if mode changed
+if (shapeMode !== 'free' && !targetPositions) {
+updateTargetPositions();
+} else if (shapeMode === 'free' && targetPositions) {
+targetPositions = null;
+}
+
+// Audio-reactive or simulated pulse effect
+const time = Date.now() * 0.001;
+let pulse = (Math.sin(time * settings.pulseFrequency) + 1) / 2;
+let bassPulse = (Math.sin(time * 0.75) + 1) / 2;
+let midPulse = (Math.sin(time * 1.5) + 1) / 2;
+let treblePulse = (Math.sin(time * 2.5) + 1) / 2;
+
+// Use real audio data if available
+if (isAudioReactive && audioData) {
+// Get audio frequency data
+audioAnalyser.getByteFrequencyData(audioData);
+
+// Extract frequency bands
+const bassSum = audioData.slice(0, 4).reduce((a, b) => a + b, 0);
+const midSum = audioData.slice(4, 20).reduce((a, b) => a + b, 0);
+const trebleSum = audioData.slice(20).reduce((a, b) => a + b, 0);
+
+// Normalize and apply sensitivity
+bassPulse = Math.min(1, (bassSum / (4 * 256)) * audioSensitivity);
+midPulse = Math.min(1, (midSum / (16 * 256)) * audioSensitivity);
+treblePulse = Math.min(1, (trebleSum / ((audioData.length - 20) * 256)) * audioSensitivity);
+
+// Overall pulse for general effects
+pulse = Math.max(bassPulse, midPulse, treblePulse);
+}
+
+// Update particles
+for (let i = 0; i < particleCount; i++) {
+const i3 = i * 3;
+
+if (targetPositions && shapeMode !== 'free') {
+// Handle special modes first
+if (shapeMode === 'wave') {
+const waveTime = time * settings.waveFrequency;
+const x = targetPositions[i3];
+const z = targetPositions[i3 + 2];
+const distance = Math.sqrt(x * x + z * z);
+
+// Create a ripple wave effect
+const ripple = Math.sin(distance - waveTime * 3) * settings.waveAmplitude;
+
+// Move toward target x and z, but use wave function for y
+const tx = targetPositions[i3] - positions[i3];
+const ty = ripple - positions[i3 + 1];
+const tz = targetPositions[i3 + 2] - positions[i3 + 2];
+
+velocities[i3] += tx * settings.movementSpeed * 5;
+velocities[i3 + 1] += ty * settings.movementSpeed * 5;
+velocities[i3 + 2] += tz * settings.movementSpeed * 5;
+}
+else if (shapeMode === 'sphere' && isAudioReactive && audioData) {
+// Audio reactive sphere effect
+const normalPos = new THREE.Vector3(
+targetPositions[i3],
+targetPositions[i3 + 1],
+targetPositions[i3 + 2]
+).normalize();
+
+// Calculate particle's angle on sphere
+const phi = Math.acos(normalPos.z);
+const theta = Math.atan2(normalPos.y, normalPos.x);
+
+// Map to frequency bin - we'll use phi (vertical position) to choose frequency band
+// This maps particles at different heights to different frequency bands
+const frequencyBin = Math.min(
+audioData.length - 1,
+Math.floor(Math.abs(phi / Math.PI) * audioData.length)
+);
+
+// Get frequency amplitude and apply sensitivity
+const amplitude = (audioData[frequencyBin] / 256) * audioSensitivity;
+
+// Create dynamic sphere radius
+const baseRadius = settings.sphereRadius;
+const radiusOffset = baseRadius * 0.3 * amplitude; // Allow up to 30% expansion
+const dynamicRadius = baseRadius + radiusOffset;
+
+// Calculate target position with audio-reactive radius
+const tx = dynamicRadius * normalPos.x - positions[i3];
+const ty = dynamicRadius * normalPos.y - positions[i3 + 1];
+const tz = dynamicRadius * normalPos.z - positions[i3 + 2];
+
+// Add vertical pulse effect based on bass frequencies
+const bassFactor = (audioData[1] / 256) * audioSensitivity * 0.1;
+
+// Apply forces with audio-reactive intensity
+const reactiveSpeed = settings.movementSpeed * (3 + amplitude * 5);
+velocities[i3] += tx * reactiveSpeed;
+velocities[i3 + 1] += (ty + (normalPos.y > 0 ? bassFactor : -bassFactor)) * reactiveSpeed;
+velocities[i3 + 2] += tz * reactiveSpeed;
+}
+else if (shapeMode === 'entanglement' && entanglementPairs) {
+// Quantum entanglement effect
+// First handle normal movement towards target
+const tx = targetPositions[i3] - positions[i3];
+const ty = targetPositions[i3 + 1] - positions[i3 + 1];
+const tz = targetPositions[i3 + 2] - positions[i3 + 2];
+
+velocities[i3] += tx * settings.movementSpeed * 3;
+velocities[i3 + 1] += ty * settings.movementSpeed * 3;
+velocities[i3 + 2] += tz * settings.movementSpeed * 3;
+
+// Then handle entanglement - paired particles affect each other
+const pairedIndex = entanglementPairs[i];
+
+if (pairedIndex !== undefined && pairedIndex < particleCount && pairedIndex !== i) {
+const j3 = pairedIndex * 3;
+// Calculate distance between pairs
+const dx = positions[i3] - positions[j3];
+const dy = positions[i3 + 1] - positions[j3 + 1];
+const dz = positions[i3 + 2] - positions[j3 + 2];
+const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+if (dist > settings.entanglementDistance) {
+// If too far, add attraction
+const force = settings.entanglementStrength * (dist - settings.entanglementDistance) / dist;
+velocities[i3] -= dx * force * 0.5;
+velocities[i3 + 1] -= dy * force * 0.5;
+velocities[i3 + 2] -= dz * force * 0.5;
+}
+
+// Add mirrored movements - what affects one affects the other
+if (frameCount % 3 === 0 && Math.random() < settings.quantumProbability) {
+velocities[j3] = -velocities[i3] * 0.8;
+velocities[j3 + 1] = -velocities[i3 + 1] * 0.8;
+velocities[j3 + 2] = -velocities[i3 + 2] * 0.8;
+}
+}
+}
+else if (shapeMode === 'toroid') {
+// Custom toroid animation with flowing movement
+const tx = targetPositions[i3] - positions[i3];
+const ty = targetPositions[i3 + 1] - positions[i3 + 1];
+const tz = targetPositions[i3 + 2] - positions[i3 + 2];
+
+// Use movement speed for shape transitions with slight variation
+const transitionSpeed = settings.movementSpeed * (4 + Math.sin(i * 0.1) * 0.5);
+velocities[i3] += tx * transitionSpeed;
+velocities[i3 + 1] += ty * transitionSpeed;
+velocities[i3 + 2] += tz * transitionSpeed;
+
+// Add flow around the toroid
+const flowSpeed = 0.005;
+const idx = Math.floor(i / 3) % 100;
+const angle = (idx / 100) * Math.PI * 2;
+
+// Add tangential velocity to create flow
+velocities[i3] += Math.cos(angle + Math.PI/2) * flowSpeed;
+velocities[i3 + 1] += Math.sin(angle + Math.PI/2) * flowSpeed;
+}
+else {
+// Standard shape movement
+const tx = targetPositions[i3] - positions[i3];
+const ty = targetPositions[i3 + 1] - positions[i3 + 1];
+const tz = targetPositions[i3 + 2] - positions[i3 + 2];
+
+// Use movement speed for shape transitions
+const transitionSpeed = settings.movementSpeed * 5;
+velocities[i3] += tx * transitionSpeed;
+velocities[i3 + 1] += ty * transitionSpeed;
+velocities[i3 + 2] += tz * transitionSpeed;
+}
+
+// Add quantum fluctuations - random micro-movements to all particles
+if (Math.random() < 0.3) {
+velocities[i3] += (Math.random() - 0.5) * settings.quantumFluctuation;
+velocities[i3 + 1] += (Math.random() - 0.5) * settings.quantumFluctuation;
+velocities[i3 + 2] += (Math.random() - 0.5) * settings.quantumFluctuation;
+}
+} else {
+// Natural movement for free mode
+velocities[i3] += Math.sin(time + i) * settings.movementSpeed;
+velocities[i3 + 1] += Math.cos(time + i) * settings.movementSpeed;
+velocities[i3 + 2] += Math.sin(time * 1.1 + i) * settings.movementSpeed;
+
+// Pulsing effect
+const particleGroup = i % 3;
+let pulseInfluence = 0;
+
+switch (particleGroup) {
+case 0: pulseInfluence = bassPulse; break;
+case 1: pulseInfluence = midPulse; break;
+case 2: pulseInfluence = treblePulse; break;
+}
+
+// Add pulsing effect
+const pulseDirection = new THREE.Vector3(
+positions[i3],
+positions[i3 + 1],
+positions[i3 + 2]
+).normalize();
+
+velocities[i3] += pulseDirection.x * pulseInfluence * settings.pulseStrength;
+velocities[i3 + 1] += pulseDirection.y * pulseInfluence * settings.pulseStrength;
+velocities[i3 + 2] += pulseDirection.z * pulseInfluence * settings.pulseStrength;
+}
+
+// Mouse interaction - always apply in all modes if mouse is moving
+if (mouseIsMoving) {
+const dx = positions[i3] - mouseX * 20;
+const dy = positions[i3 + 1] - mouseY * 20;
+const dz = positions[i3 + 2];
+const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+if (dist < settings.interactionRadius) {
+const force = settings.interactionStrength * (1 - dist / settings.interactionRadius);
+velocities[i3] -= dx * force;
+velocities[i3 + 1] -= dy * force;
+}
+}
+
+// Containment for all modes
+const radius = Math.sqrt(
+positions[i3] * positions[i3] +
+positions[i3 + 1] * positions[i3 + 1] +
+positions[i3 + 2] * positions[i3 + 2]
+);
+
+if (radius > settings.sphereRadius) {
+const force = settings.containmentForce * (radius - settings.sphereRadius);
+velocities[i3] -= positions[i3] * force / radius;
+velocities[i3 + 1] -= positions[i3 + 1] * force / radius;
+velocities[i3 + 2] -= positions[i3 + 2] * force / radius;
+}
+
+// Apply damping
+velocities[i3] *= settings.velocityDamping;
+velocities[i3 + 1] *= settings.velocityDamping;
+velocities[i3 + 2] *= settings.velocityDamping;
+
+// Update positions
+positions[i3] += velocities[i3];
+positions[i3 + 1] += velocities[i3 + 1];
+positions[i3 + 2] += velocities[i3 + 2];
+
+// Update colors based on mode
+if (colorMode === 'spectrum') {
+const height = (positions[i3 + 1] / settings.sphereRadius + 1) / 2; // 0-1 range
+
+if (isMonochrome) {
+// Map position to grayscale spectrum for monochromatic theme
+const brightness = 0.5 + height * 0.5; // 0.5-1.0 range for subtle variation
+
+// Monochromatic spectrum
+colors[i3] = brightness;
+colors[i3 + 1] = brightness;
+colors[i3 + 2] = brightness;
+} else {
+// Rainbow spectrum
+if (height < 0.2) {
+// Blue to cyan
+colors[i3] = 0;
+colors[i3 + 1] = height * 5;
+colors[i3 + 2] = 1;
+} else if (height < 0.4) {
+// Cyan to green
+colors[i3] = 0;
+colors[i3 + 1] = 1;
+colors[i3 + 2] = 1 - (height - 0.2) * 5;
+} else if (height < 0.6) {
+// Green to yellow
+colors[i3] = (height - 0.4) * 5;
+colors[i3 + 1] = 1;
+colors[i3 + 2] = 0;
+} else if (height < 0.8) {
+// Yellow to red
+colors[i3] = 1;
+colors[i3 + 1] = 1 - (height - 0.6) * 5;
+colors[i3 + 2] = 0;
+} else {
+// Red to purple
+colors[i3] = 1;
+colors[i3 + 1] = 0;
+colors[i3 + 2] = (height - 0.8) * 5;
+}
+}
+} else if (colorMode === 'pulse') {
+const particleGroup = i % 3;
+
+if (isMonochrome) {
+// Pulse-based monochrome colors
+let pulseBrightness = 0;
+
+switch (particleGroup) {
+case 0: pulseBrightness = 0.7 + bassPulse * 0.3; break;
+case 1: pulseBrightness = 0.6 + midPulse * 0.4; break;
+case 2: pulseBrightness = 0.5 + treblePulse * 0.5; break;
+}
+
+colors[i3] = pulseBrightness;
+colors[i3 + 1] = pulseBrightness;
+colors[i3 + 2] = pulseBrightness;
+} else {
+// Pulse-based color groups
+switch (particleGroup) {
+case 0: // Bass (red)
+colors[i3] = 0.8 + bassPulse * 0.2;
+colors[i3 + 1] = 0.1 * bassPulse;
+colors[i3 + 2] = 0.2 * bassPulse;
+break;
+case 1: // Mid (green)
+colors[i3] = 0.1 * midPulse;
+colors[i3 + 1] = 0.7 + midPulse * 0.3;
+colors[i3 + 2] = 0.3 * midPulse;
+break;
+case 2: // Treble (blue)
+colors[i3] = 0.1 * treblePulse;
+colors[i3 + 1] = 0.3 * treblePulse;
+colors[i3 + 2] = 0.7 + treblePulse * 0.3;
+break;
+}
+}
+} else if (colorMode === 'quantum') {
+const radius = Math.sqrt(
+positions[i3] * positions[i3] +
+positions[i3 + 1] * positions[i3 + 1] +
+positions[i3 + 2] * positions[i3 + 2]
+);
+
+// Normalize radius to 0-1
+const normalizedRadius = Math.min(radius / settings.sphereRadius, 1);
+
+if (isMonochrome) {
+// Create "energy level" greyscale mapping
+if (normalizedRadius < 0.25) {
+// Innermost shell - brightest
+const brightness = 0.9 + pulse * 0.1;
+colors[i3] = brightness;
+colors[i3 + 1] = brightness;
+colors[i3 + 2] = brightness;
+} else if (normalizedRadius < 0.50) {
+// Second shell
+const brightness = 0.8 + pulse * 0.1;
+colors[i3] = brightness;
+colors[i3 + 1] = brightness;
+colors[i3 + 2] = brightness;
+} else if (normalizedRadius < 0.75) {
+// Third shell
+const brightness = 0.7 + pulse * 0.1;
+colors[i3] = brightness;
+colors[i3 + 1] = brightness;
+colors[i3 + 2] = brightness;
+} else {
+// Outer shell
+const brightness = 0.6 - pulse * 0.1;
+colors[i3] = brightness;
+colors[i3 + 1] = brightness;
+colors[i3 + 2] = brightness;
+}
+} else {
+// Quantum-style colors - energy state visualization with color
+if (normalizedRadius < 0.25) {
+// Innermost shell - bright cyan
+colors[i3] = 0.1 + pulse * 0.2;
+colors[i3 + 1] = 0.7 + pulse * 0.3;
+colors[i3 + 2] = 0.9;
+} else if (normalizedRadius < 0.50) {
+// Second shell - electric blue
+colors[i3] = 0.0;
+colors[i3 + 1] = 0.4 + pulse * 0.2;
+colors[i3 + 2] = 1.0;
+} else if (normalizedRadius < 0.75) {
+// Third shell - deep blue to purple
+colors[i3] = 0.2 + pulse * 0.1;
+colors[i3 + 1] = 0.0;
+colors[i3 + 2] = 0.8 + pulse * 0.2;
+} else {
+// Outer shell - fading purple
+colors[i3] = 0.3 - pulse * 0.1;
+colors[i3 + 1] = 0.0;
+colors[i3 + 2] = 0.6 - pulse * 0.2;
+}
+
+// Add slight variance per particle
+const variance = (i % 10) / 10 * 0.2;
+colors[i3] = Math.min(1, colors[i3] + variance);
+colors[i3 + 2] = Math.min(1, colors[i3 + 2] + variance);
+}
+} else {
+// Default mode
+const distFromCenter = Math.sqrt(
+positions[i3] * positions[i3] +
+positions[i3 + 1] * positions[i3 + 1] +
+positions[i3 + 2] * positions[i3 + 2]
+) / settings.sphereRadius;
+
+if (isMonochrome) {
+// Default monochromatic white with subtle variations
+const brightness = 0.9 - distFromCenter * 0.3; // Particles dim slightly at the edges
+
+colors[i3] = brightness;
+colors[i3 + 1] = brightness;
+colors[i3 + 2] = brightness;
+} else {
+// Default blue color scheme with subtle variations
+colors[i3] = 0.1 + (positions[i3] / settings.sphereRadius) * 0.2;
+colors[i3 + 1] = 0.3 + (positions[i3 + 1] / settings.sphereRadius) * 0.3;
+colors[i3 + 2] = 0.8 + (positions[i3 + 2] / settings.sphereRadius) * 0.2;
+}
+}
+
+// Special color handling for shape modes
+if (shapeMode === 'entanglement' && entanglementPairs) {
+const pairedIndex = entanglementPairs[i];
+if (pairedIndex !== undefined && pairedIndex < particleCount && pairedIndex !== i) {
+// Make entangled pairs share colors
+if (i < pairedIndex) {
+const j3 = pairedIndex * 3;
+colors[j3] = colors[i3];
+colors[j3 + 1] = colors[i3 + 1];
+colors[j3 + 2] = colors[i3 + 2];
+}
+}
+}
+}
+
+// Update connection lines only every few frames for better performance
+frameSkipCounter++;
+if (frameSkipCounter >= 3) {
+frameSkipCounter = 0;
+
+try {
+// Update connections with fewer lines for better performance
+const linePositions = [];
+const maxConnections = settings.maxConnections;
+let connectionCount = 0;
+
+// Different connection strategies for different modes
+if (shapeMode === 'entanglement' && entanglementPairs) {
+// Draw lines only between entangled pairs
+for (let i = 0; i < particleCount; i += 2) {
+if (i + 1 >= particleCount) break; // Safety check
+
+const i3 = i * 3;
+const j3 = (i + 1) * 3;
+
+linePositions.push(
+positions[i3], positions[i3 + 1], positions[i3 + 2],
+positions[j3], positions[j3 + 1], positions[j3 + 2]
+);
+connectionCount++;
+}
+} else {
+// Standard proximity-based connections
+// Sample fewer particles based on screen fill for performance
+const sampleRate = Math.max(2, Math.floor(particleCount / 500));
+
+for (let i = 0; i < particleCount; i += sampleRate) {
+const i3 = i * 3;
+const xi = positions[i3];
+const yi = positions[i3 + 1];
+const zi = positions[i3 + 2];
+
+for (let j = i + sampleRate; j < particleCount; j += sampleRate) {
+if (connectionCount >= maxConnections) break;
+
+const j3 = j * 3;
+const xj = positions[j3];
+const yj = positions[j3 + 1];
+const zj = positions[j3 + 2];
+
+const dx = xi - xj;
+const dy = yi - yj;
+const dz = zi - zj;
+const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+if (dist < settings.connectionDistance) {
+linePositions.push(xi, yi, zi, xj, yj, zj);
+connectionCount++;
+}
+}
+}
+}
+
+// Update connection lines if we have any
+if (linePositions.length > 0) {
+const connectionsArray = new Float32Array(linePositions);
+connectionsLines.geometry.setAttribute('position', new THREE.BufferAttribute(connectionsArray, 3));
+
+// If this is the first time we're creating real connections, log it
+if (connectionCount > 0 && frameCount < 10) {
+console.log(`Created ${connectionCount} connections`);
+}
+}
+
+// Update connection colors and opacity based on mode
+if (shapeMode === 'entanglement') {
+connectionsLines.material.opacity = settings.connectionOpacity * (isMonochrome ? 0.5 : 0.7);
+} else {
+connectionsLines.material.opacity = settings.connectionOpacity * (isMonochrome ? 0.3 : 0.5);
+}
+
+// Update connection color based on monochrome toggle
+connectionsLines.material.color.set(isMonochrome ? 0xE8E7E2 : 0x6CA6D9);
+} catch (e) {
+console.error("Error updating connections:", e);
+}
+}
+
+// Update geometry attributes
+particleSystem.geometry.attributes.position.needsUpdate = true;
+particleSystem.geometry.attributes.color.needsUpdate = true;
+
+// Render the scene
+renderer.render(scene, camera);
+
+// Log first frame completion
+if (frameCount === 1) {
+console.log("First animation frame completed successfully");
+}
+} catch (error) {
+console.error("Animation error:", error);
+}
+}
+
+// Event listeners
+function handleMouseMove(event) {
+const rect = renderer.domElement.getBoundingClientRect();
+mouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+mouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+// Set flag for mouse movement
+mouseIsMoving = true;
+
+// Clear previous timeout and set new one
+clearTimeout(mouseMovementTimeout);
+mouseMovementTimeout = setTimeout(() => {
+mouseIsMoving = false;
+}, 100); // Assume mouse stopped after 100ms of no movement
+}
+
+window.addEventListener('mousemove', handleMouseMove);
+console.log("Mouse listener added");
+
+let resizeTimeout;
+function handleResize() {
+clearTimeout(resizeTimeout);
+resizeTimeout = setTimeout(() => {
+camera.aspect = window.innerWidth / window.innerHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(window.innerWidth, window.innerHeight);
+console.log("Window resized, renderer updated");
+}, 250);
+}
+
+window.addEventListener('resize', handleResize);
+console.log("Resize listener added");
+
+// Create UI sliders with tab organization
+function createSliders() {
+console.log("Creating UI sliders");
+const sliderConfigs = {
+particles: [
+{ id: 'particleCount', label: 'Particle Count', min: 500, max: 8000, step: 100, reinit: true },
+{ id: 'particleSize', label: 'Particle Size', min: 0.1, max: 0.8, step: 0.01 },
+{ id: 'sphereRadius', label: 'Sphere Radius', min: 5, max: 30, step: 1 }
+],
+interactions: [
+{ id: 'connectionDistance', label: 'Connection Distance', min: 1, max: 10, step: 0.5 },
+{ id: 'connectionOpacity', label: 'Connection Opacity', min: 0.1, max: 1, step: 0.05 },
+{ id: 'maxConnections', label: 'Max Connections', min: 5000, max: 50000, step: 1000 },
+{ id: 'interactionStrength', label: 'Interaction Strength', min: 0.01, max: 0.5, step: 0.01 },
+{ id: 'interactionRadius', label: 'Interaction Radius', min: 5, max: 20, step: 1 }
+],
+effects: [
+{ id: 'movementSpeed', label: 'Movement Speed', min: 0.001, max: 0.05, step: 0.001 },
+{ id: 'containmentForce', label: 'Containment Force', min: 0.01, max: 0.2, step: 0.01 },
+{ id: 'velocityDamping', label: 'Velocity Damping', min: 0.8, max: 0.99, step: 0.01 },
+{ id: 'pulseFrequency', label: 'Pulse Frequency', min: 0.1, max: 3.0, step: 0.1 },
+{ id: 'pulseStrength', label: 'Pulse Strength', min: 0.01, max: 0.5, step: 0.01 },
+{ id: 'quantumFluctuation', label: 'Quantum Fluctuation', min: 0.01, max: 0.2, step: 0.01 },
+{ id: 'waveAmplitude', label: 'Wave Amplitude', min: 0.1, max: 3.0, step: 0.1 },
+{ id: 'waveFrequency', label: 'Wave Frequency', min: 0.1, max: 2.0, step: 0.1 },
+{ id: 'entanglementStrength', label: 'Entanglement Strength', min: 0.1, max: 1.0, step: 0.05 },
+{ id: 'toroidRadius', label: 'Toroid Radius', min: 5, max: 20, step: 0.5 },
+{ id: 'toroidTubeRadius', label: 'Toroid Tube Radius', min: 1, max: 6, step: 0.5 }
+]
+};
+
+// Create sliders for each tab
+for (const [tabName, configs] of Object.entries(sliderConfigs)) {
+const tabContent = document.getElementById(`${tabName}-tab`);
+if (!tabContent) {
+console.error(`Tab content element #${tabName}-tab not found`);
+continue;
+}
+
+configs.forEach(config => {
+const container = document.createElement('div');
+container.className = 'slider-container';
+
+const header = document.createElement('div');
+header.className = 'slider-header';
+
+const label = document.createElement('label');
+label.textContent = config.label;
+
+const value = document.createElement('span');
+value.className = 'slider-value';
+value.textContent = settings[config.id].toFixed(2);
+
+const slider = document.createElement('input');
+slider.type = 'range';
+slider.min = config.min;
+slider.max = config.max;
+slider.step = config.step;
+slider.value = settings[config.id];
+slider.dataset.setting = config.id; // For preset updates
+
+// Function to update the slider fill track
+const updateSliderFill = (slider) => {
+const min = parseFloat(slider.min);
+const max = parseFloat(slider.max);
+const val = parseFloat(slider.value);
+const percentage = ((val - min) / (max - min)) * 100;
+const container = slider.closest('.slider-container');
+if (container) {
+container.style.setProperty('--slider-fill', `${100 - percentage}%`);
+}
+};
+
+// Set initial slider fill position
+updateSliderFill(slider);
+
+slider.addEventListener('input', (e) => {
+const newValue = parseFloat(e.target.value);
+settings[config.id] = newValue;
+value.textContent = newValue.toFixed(2);
+
+// Update the slider fill visualization
+updateSliderFill(e.target);
+
+// Reinitialize particles if certain settings change
+if (config.reinit && !isInitializing) {
+console.log(`Reinitializing for setting change: ${config.id} = ${newValue}`);
+initParticles();
+}
+
+// Update connection material opacity
+if (config.id === 'connectionOpacity' && connectionsLines) {
+connectionsLines.material.opacity = newValue * (isMonochrome ? 0.3 : 0.5);
+}
+
+// Update particle size
+if (config.id === 'particleSize' && particleSystem) {
+particleSystem.material.size = newValue;
+}
+
+// Handle shape-specific settings
+if ((config.id === 'toroidRadius' || config.id === 'toroidTubeRadius') && shapeMode === 'toroid') {
+updateTargetPositions();
+}
+if (config.id === 'particleCount') {
+const particleCountDisplay = document.getElementById('particleCountDisplay');
+if (particleCountDisplay) {
+particleCountDisplay.textContent = `PARTICLES: ${newValue}`;
+}
+}
+});
+
+header.appendChild(label);
+header.appendChild(value);
+container.appendChild(header);
+container.appendChild(slider);
+tabContent.appendChild(container);
+});
+}
+console.log("Sliders created successfully");
+}
+
+// Setup tab switching in settings panel
+document.querySelectorAll('.tab').forEach(tab => {
+tab.addEventListener('click', () => {
+const tabName = tab.getAttribute('data-tab');
+console.log(`Switching to tab: ${tabName}`);
+
+// Update active tab
+document.querySelectorAll('.tab').forEach(t => {
+t.classList.remove('active');
+});
+tab.classList.add('active');
+
+// Show selected tab content, hide others
+document.querySelectorAll('.tab-content').forEach(content => {
+content.style.display = 'none';
+});
+document.getElementById(`${tabName}-tab`).style.display = 'block';
+
+activeTab = tabName;
+});
+});
+console.log("Tab listeners set up");
+
+// Setup shape mode buttons
+document.querySelectorAll('#shapeModes button').forEach(button => {
+button.addEventListener('click', () => {
+const mode = button.getAttribute('data-mode');
+console.log(`Changing shape mode to: ${mode}`);
+
+// Only take action if the mode is changing
+if (shapeMode !== mode) {
+shapeMode = mode;
+
+// Clear existing target positions to trigger an update
+targetPositions = null;
+
+// Reinitialize for entanglement to set up pairs
+if (mode === 'entanglement') {
+console.log("Reinitializing for entanglement mode");
+initParticles();
+}
+}
+
+// Update active button
+document.querySelectorAll('#shapeModes button').forEach(btn => {
+btn.classList.remove('active');
+});
+button.classList.add('active');
+});
+});
+console.log("Shape mode buttons set up");
+
+// Setup color mode buttons
+document.querySelectorAll('#colorModes button').forEach(button => {
+button.addEventListener('click', () => {
+const mode = button.getAttribute('data-mode');
+console.log(`Changing color mode to: ${mode}`);
+colorMode = mode;
+
+// Update active button
+document.querySelectorAll('#colorModes button').forEach(btn => {
+btn.classList.remove('active');
+});
+button.classList.add('active');
+});
+});
+console.log("Color mode buttons set up");
+
+// Setup monochrome toggle
+const monoToggle = document.getElementById('monoToggle');
+monoToggle.addEventListener('change', () => {
+isMonochrome = monoToggle.checked;
+console.log(`Monochrome mode ${isMonochrome ? 'enabled' : 'disabled'}`);
+
+// Update connection color immediately
+if (connectionsLines) {
+connectionsLines.material.color.set(isMonochrome ? 0xE8E7E2 : 0x6CA6D9);
+connectionsLines.material.opacity = settings.connectionOpacity * (isMonochrome ? 0.3 : 0.5);
+}
+});
+console.log("Monochrome toggle set up");
+
+// Setup audio reactivity toggle and controls
+const audioToggle = document.getElementById('audioToggle');
+const audioControls = document.getElementById('audioControls');
+const sensitivitySlider = document.getElementById('sensitivitySlider');
+const sensitivityValue = document.getElementById('sensitivityValue');
+let audioSensitivity = 3.0;
+
+// Setup audio visualizer
+const audioVisualizer = document.querySelector('.audio-bars');
+const NUM_AUDIO_BARS = 32;
+
+// Create audio bars for visualizer
+for (let i = 0; i < NUM_AUDIO_BARS; i++) {
+const bar = document.createElement('div');
+bar.className = 'audio-bar';
+audioVisualizer.appendChild(bar);
+}
+
+// Create grid lines for oscilloscope effect
+const gridLines = document.createElement('div');
+gridLines.className = 'grid-lines';
+
+// Add horizontal grid lines
+for (let i = 1; i < 5; i++) {
+const line = document.createElement('div');
+line.className = 'grid-line';
+line.style.bottom = `${i * 20}%`;
+gridLines.appendChild(line);
+}
+
+audioVisualizer.appendChild(gridLines);
+
+// Initialize audio analyzer
+async function setupAudioAnalyzer() {
+try {
+if (!audioContext) {
+audioContext = new (window.AudioContext || window.webkitAudioContext)();
+console.log("Audio context created");
+
+// Request microphone access
+mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+console.log("Microphone access granted");
+
+// Create analyzer node
+const source = audioContext.createMediaStreamSource(mediaStream);
+audioAnalyser = audioContext.createAnalyser();
+audioAnalyser.fftSize = 128;
+source.connect(audioAnalyser);
+
+// Create data array for frequency data
+audioData = new Uint8Array(audioAnalyser.frequencyBinCount);
+console.log(`Audio analyzer created with ${audioAnalyser.frequencyBinCount} frequency bins`);
+
+// Start audio visualization loop
+updateAudioVisualization();
+}
+
+return true;
+} catch (error) {
+console.error("Error setting up audio:", error);
+alert("Could not access microphone. Please check permissions and try again.");
+audioToggle.checked = false;
+audioControls.style.display = 'none';
+isAudioReactive = false;
+return false;
+}
+}
+
+// Update the audio visualization
+function updateAudioVisualization() {
+if (!audioAnalyser || !isAudioReactive) return;
+
+audioAnalyser.getByteFrequencyData(audioData);
+const bars = audioVisualizer.children;
+const step = Math.floor(audioData.length / bars.length);
+
+for (let i = 0; i < bars.length; i++) {
+if (bars[i].classList.contains('audio-bar')) { // Ensure we only target audio bars
+const value = audioData[i * step] / 256; // Normalize to 0-1
+const height = Math.max(2, value * 100) + '%';
+bars[i].style.height = height;
+}
+}
+
+requestAnimationFrame(updateAudioVisualization);
+}
+
+// Handle audio toggle
+audioToggle.addEventListener('change', async () => {
+isAudioReactive = audioToggle.checked;
+
+if (isAudioReactive) {
+audioControls.style.display = 'block';
+const success = await setupAudioAnalyzer();
+if (success) {
+console.log("Audio reactivity enabled");
+}
+} else {
+audioControls.style.display = 'none';
+console.log("Audio reactivity disabled");
+
+// Stop microphone if needed
+if (mediaStream) {
+mediaStream.getTracks().forEach(track => track.stop());
+mediaStream = null;
+console.log("Microphone stopped");
+}
+}
+});
+
+// Handle sensitivity slider
+// Function to update audio sensitivity slider fill
+const updateAudioSliderFill = (slider) => {
+const min = parseFloat(slider.min);
+const max = parseFloat(slider.max);
+const val = parseFloat(slider.value);
+const percentage = ((val - min) / (max - min)) * 100;
+const container = slider.closest('.slider-container');
+if (container) {
+container.style.setProperty('--slider-fill', `${100 - percentage}%`);
+}
+};
+
+// Set initial audio sensitivity slider fill
+updateAudioSliderFill(sensitivitySlider);
+
+sensitivitySlider.addEventListener('input', (e) => {
+audioSensitivity = parseFloat(e.target.value);
+sensitivityValue.textContent = audioSensitivity.toFixed(2);
+console.log(`Audio sensitivity set to ${audioSensitivity}`);
+
+// Update the slider fill
+updateAudioSliderFill(e.target);
+});
+
+console.log("Audio controls set up");
+
+// Setup focus mode toggle
+const focusToggle = document.getElementById('focusToggle');
+focusToggle.addEventListener('change', () => {
+const isFocusMode = focusToggle.checked;
+document.body.classList.toggle('focus-mode', isFocusMode);
+console.log(`Focus mode ${isFocusMode ? 'enabled' : 'disabled'}`);
+
+// Set up panel focus tracking if focus mode is enabled
+const controlPanels = document.querySelectorAll('.control-panel');
+if (isFocusMode) {
+controlPanels.forEach(panel => {
+panel.addEventListener('mouseenter', () => {
+panel.classList.add('focused');
+});
+
+panel.addEventListener('mouseleave', () => {
+panel.classList.remove('focused');
+});
+});
+} else {
+// Remove focus class from all panels
+controlPanels.forEach(panel => {
+panel.classList.remove('focused');
+});
+}
+});
+console.log("Focus mode toggle set up");
+
+// Helper function to apply multiple settings at once
+function setSettings(newSettings) {
+console.log("Applying new settings:", newSettings);
+for (const [key, value] of Object.entries(newSettings)) {
+if (settings.hasOwnProperty(key)) {
+settings[key] = value;
+
+// Update slider values in UI
+const slider = document.querySelector(`input[type="range"][data-setting="${key}"]`);
+if (slider) {
+slider.value = value;
+const valueSpan = slider.parentElement.querySelector('.slider-value');
+if (valueSpan) {
+valueSpan.textContent = typeof value === 'number' ? value.toFixed(2) : value;
+}
+}
+}
+}
+}
+
+// Helper function to change both shape and color mode
+function setMode(shape, color) {
+console.log(`Setting modes: shape=${shape}, color=${color}`);
+// Update shape mode
+shapeMode = shape;
+document.querySelectorAll('#shapeModes button').forEach(btn => {
+btn.classList.toggle('active', btn.getAttribute('data-mode') === shape);
+});
+
+// Update color mode
+colorMode = color;
+document.querySelectorAll('#colorModes button').forEach(btn => {
+btn.classList.toggle('active', btn.getAttribute('data-mode') === color);
+});
+
+// Clear target positions to trigger recreation
+targetPositions = null;
+}
+
+// Fullscreen toggle
+document.getElementById('fullscreenBtn').addEventListener('click', () => {
+console.log("Toggling fullscreen");
+if (!document.fullscreenElement) {
+document.documentElement.requestFullscreen().catch(err => {
+console.error(`Error attempting to enable fullscreen: ${err.message}`);
+});
+} else {
+if (document.exitFullscreen) {
+document.exitFullscreen();
+}
+}
+});
+
+// Initialize and start animation
+try {
+console.log("Starting initialization");
+// Reduced initial particle count for better startup performance
+console.log("About to initialize particles...");
+initParticles();
+console.log("Particles initialized successfully");
+
+console.log("About to create sliders...");
+createSliders();
+console.log("Sliders created successfully");
+
+console.log("About to start animation loop...");
+animate();
+console.log("Initialization complete, animation started");
+} catch (e) {
+console.error("Initialization error:", e.message, e.stack);
+console.error("Error occurred at: ", e.lineNumber || "unknown line");
+hideLoading();
+alert("There was an error initializing the simulation. Please try refreshing the page.");
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+console.log("Page unloading, cleaning up resources");
+if (animationId) {
+cancelAnimationFrame(animationId);
+}
+
+if (particleSystem) {
+scene.remove(particleSystem);
+scene.remove(connectionsLines);
+
+particleSystem.geometry.dispose();
+particleSystem.material.dispose();
+connectionsLines.geometry.dispose();
+connectionsLines.material.dispose();
+renderer.dispose();
+}
+
+window.removeEventListener('mousemove', handleMouseMove);
+window.removeEventListener('resize', handleResize);
+});
+
+// Variables declaration - minimized for troubleshooting
+// Create variables but don't add functionality yet to isolate the problem
+let imageMode = 'color';
+let samplingDensity = 5.0;
+let imageData = null;
+// originalPositions is already declared in the main code
+let imageTransitionInProgress = false;
+let savedShapeMode = 'free';
+let chatSphereCenter = new THREE.Vector3(0, 0, 0);
+let chatSphereRadius = 8;
+
+console.log("Base variables declared");
+
+// Simple DOM references for initial troubleshooting
+console.log("Setting up simplified event handlers");
+
+// Safely get elements, with null checks to avoid initialization errors
+const safeGetElement = (id) => {
+const element = document.getElementById(id);
+if (!element) {
+console.warn(`Element with id '${id}' not found`);
+return null;
+}
+return element;
+};
+
+const imageUpload = safeGetElement('imageUpload');
+const imagePreview = safeGetElement('imagePreview');
+const previewImg = safeGetElement('previewImg');
+const densitySlider = safeGetElement('densitySlider');
+const densityValue = safeGetElement('densityValue');
+const densitySliderContainer = safeGetElement('densitySliderContainer');
+
+console.log("DOM elements referenced");
+
+// Simplified functions that won't break initialization
+const updateDensitySliderFill = () => {
+if (!densitySlider || !densitySliderContainer) return;
+
+try {
+const min = parseFloat(densitySlider.min);
+const max = parseFloat(densitySlider.max);
+const val = parseFloat(densitySlider.value);
+const percentage = ((val - min) / (max - min)) * 100;
+densitySliderContainer.style.setProperty('--slider-fill', `${100 - percentage}%`);
+} catch (e) {
+console.warn("Density slider update failed:", e);
+}
+};
+
+console.log("Slider functions defined");
+
+// Minimal event handlers - we'll just add stubs to avoid errors
+console.log("Setting up minimal event handlers");
+
+// Safe event handler attachment
+const safeAddEventListener = (element, event, handler) => {
+if (!element) {
+console.warn(`Cannot attach ${event} event to null element`);
+return;
+}
+
+try {
+element.addEventListener(event, handler);
+} catch (e) {
+console.warn(`Error attaching ${event} event:`, e);
+}
+};
+
+// Enhanced image upload handler
+safeAddEventListener(imageUpload, 'change', function(e) {
+console.log("Image upload triggered");
+const file = e.target.files[0];
+if (!file) return;
+
+if (!file.type.match('image.*')) {
+alert('Please select an image file (PNG, JPEG, WEBP)');
+return;
+}
+
+// Show preview with improved feedback
+const reader = new FileReader();
+reader.onload = function(event) {
+if (previewImg) {
+previewImg.src = event.target.result;
+
+// Display image dimensions once loaded
+previewImg.onload = function() {
+const resolutionElement = document.getElementById('previewResolution');
+if (resolutionElement) {
+resolutionElement.textContent = `${previewImg.naturalWidth} × ${previewImg.naturalHeight}`;
+}
+
+// Show the preview with a subtle animation
+if (imagePreview) {
+imagePreview.style.display = 'block';
+imagePreview.style.animation = 'fade-in 0.3s ease-out';
+}
+
+// Show the density slider
+if (densitySliderContainer) {
+densitySliderContainer.style.display = 'block';
+densitySliderContainer.style.animation = 'fade-in 0.3s ease-out 0.1s forwards';
+}
+
+// Process image data (using stub to avoid errors)
+if (typeof processImageData === 'function') {
+try {
+processImageData(previewImg);
+} catch (err) {
+console.warn("Error processing image:", err);
+}
+}
+};
+}
+};
+
+reader.readAsDataURL(file);
+});
+
+// Simplified density slider
+safeAddEventListener(densitySlider, 'input', function(e) {
+console.log("Density slider changed");
+// No actual implementation for now
+});
+
+// Simplified mode buttons (safely)
+try {
+const samplingButtons = document.querySelectorAll('#samplingModes button');
+if (samplingButtons && samplingButtons.length > 0) {
+samplingButtons.forEach(button => {
+safeAddEventListener(button, 'click', () => {
+console.log("Sampling mode button clicked");
+// No actual implementation for now
+});
+});
+} else {
+console.log("No sampling mode buttons found");
+}
+} catch(e) {
+console.warn("Error setting up sampling buttons:", e);
+}
+
+console.log("Event handlers set up");
+
+// Simplified stubs for all image processing functions
+console.log("Creating function stubs");
+
+// Simple stub for image processing
+function processImageData(img) {
+console.log("Image processing stub called");
+return; // No implementation to avoid errors
+}
+
+// Simple stub for edge detection
+function detectEdges(imageData) {
+console.log("Edge detection stub called");
+return []; // Return empty array
+}
+
+// Simple stub for image transition
+function startImageTransition() {
+console.log("Image transition stub called");
+return; // No implementation
+}
+
+// Simple stub for resetting particles
+function resetImageParticles() {
+console.log("Reset particles stub called");
+return; // No implementation
+}
+
+// Simple stub for button creation
+try {
+// Enhanced image panel controls
+const imageBtn = safeGetElement('imageBtn');
+const imageUploadPanel = document.querySelector('.image-upload-panel');
+const resetParticles = safeGetElement('resetParticles');
+const closeImagePanel = safeGetElement('closeImagePanel');
+
+// Toggle image panel
+if (imageBtn && imageUploadPanel) {
+safeAddEventListener(imageBtn, 'click', function() {
+console.log("Image button clicked");
+const isVisible = imageUploadPanel.style.display !== 'none';
+
+if (isVisible) {
+// Hide panel with animation
+imageUploadPanel.style.animation = 'fade-out 0.3s ease-in forwards';
+setTimeout(() => {
+imageUploadPanel.style.display = 'none';
+}, 300);
+} else {
+// Show panel with animation
+imageUploadPanel.style.display = 'block';
+imageUploadPanel.style.animation = 'fade-in 0.4s ease-out forwards';
+}
+});
+
+console.log("Image button handler attached");
+} else {
+console.warn("Could not find image button or panel");
+}
+
+// API Settings panel controls
+const apiSettingsBtn = safeGetElement('apiSettingsBtn');
+const apiSettingsPanel = document.querySelector('.api-settings-panel');
+const saveApiSettings = safeGetElement('saveApiSettings');
+const testApiConnection = safeGetElement('testApiConnection');
+const toggleApiVisibility = safeGetElement('toggleApiVisibility');
+const deepseekApiKey = safeGetElement('deepseekApiKey');
+const apiModel = safeGetElement('apiModel');
+const apiStatus = safeGetElement('apiStatus');
+
+// Load saved API key if exists
+if (deepseekApiKey) {
+const savedApiKey = localStorage.getItem('deepseekApiKey');
+if (savedApiKey) {
+deepseekApiKey.value = savedApiKey;
+}
+
+const savedModel = localStorage.getItem('apiModel');
+if (savedModel && apiModel) {
+apiModel.value = savedModel;
+}
+}
+
+// Toggle API settings panel
+if (apiSettingsBtn && apiSettingsPanel) {
+safeAddEventListener(apiSettingsBtn, 'click', function() {
+console.log("API Settings button clicked");
+const isVisible = apiSettingsPanel.style.display !== 'none';
+
+if (isVisible) {
+// Hide panel with animation
+apiSettingsPanel.style.animation = 'fade-out 0.3s ease-in forwards';
+setTimeout(() => {
+apiSettingsPanel.style.display = 'none';
+}, 300);
+} else {
+// Show panel with animation
+apiSettingsPanel.style.display = 'block';
+apiSettingsPanel.style.animation = 'fade-in 0.4s ease-out forwards';
+}
+});
+
+console.log("API Settings button handler attached");
+} else {
+console.warn("Could not find API Settings button or panel");
+}
+
+// Toggle API key visibility
+if (toggleApiVisibility && deepseekApiKey) {
+safeAddEventListener(toggleApiVisibility, 'click', function() {
+const type = deepseekApiKey.getAttribute('type');
+if (type === 'password') {
+deepseekApiKey.setAttribute('type', 'text');
+toggleApiVisibility.textContent = '🔒';
+} else {
+deepseekApiKey.setAttribute('type', 'password');
+toggleApiVisibility.textContent = '👁️';
+}
+});
+}
+
+// Save API settings
+if (saveApiSettings && deepseekApiKey) {
+safeAddEventListener(saveApiSettings, 'click', function() {
+const apiKey = deepseekApiKey.value.trim();
+const selectedModel = apiModel ? apiModel.value : 'deepseek-r1';
+
+if (apiKey) {
+// Save to localStorage
+localStorage.setItem('deepseekApiKey', apiKey);
+localStorage.setItem('apiModel', selectedModel);
+
+// Show success message
+if (apiStatus) {
+apiStatus.textContent = 'API settings saved successfully!';
+apiStatus.className = 'api-status success';
+
+// Clear status after 3 seconds
+setTimeout(() => {
+apiStatus.className = 'api-status';
+apiStatus.textContent = '';
+}, 3000);
+}
+} else {
+// Show error message
+if (apiStatus) {
+apiStatus.textContent = 'Please enter a valid API key.';
+apiStatus.className = 'api-status error';
+
+// Clear status after 3 seconds
+setTimeout(() => {
+apiStatus.className = 'api-status';
+apiStatus.textContent = '';
+}, 3000);
+}
+}
+});
+}
+
+// Test API connection
+if (testApiConnection && deepseekApiKey) {
+safeAddEventListener(testApiConnection, 'click', function() {
+const apiKey = deepseekApiKey.value.trim();
+const selectedModel = apiModel ? apiModel.value : 'deepseek-r1';
+
+if (!apiKey) {
+if (apiStatus) {
+apiStatus.textContent = 'Please enter a valid API key.';
+apiStatus.className = 'api-status error';
+
+setTimeout(() => {
+apiStatus.className = 'api-status';
+apiStatus.textContent = '';
+}, 3000);
+}
+return;
+}
+
+// Indicate testing is in progress
+if (apiStatus) {
+apiStatus.textContent = 'Testing connection...';
+apiStatus.className = 'api-status';
+}
+
+testApiConnection.disabled = true;
+
+// Simple test request to the DeepSeek API
+fetch('https://api.deepseeklabs.com/v1/chat/completions', {
+method: 'POST',
+headers: {
+'Content-Type': 'application/json',
+'Authorization': `Bearer ${apiKey}`
+},
+body: JSON.stringify({
+model: selectedModel,
+messages: [
+{
+role: 'system',
+content: 'You are DeepSeek R1, a helpful AI assistant.'
+},
+{
+role: 'user',
+content: 'Send a short test response.'
+}
+],
+max_tokens: 50
+})
+})
+.then(response => {
+if (!response.ok) {
+throw new Error(`API request failed with status ${response.status}`);
+}
+return response.json();
+})
+.then(data => {
+console.log('API test successful:', data);
+
+if (apiStatus) {
+apiStatus.textContent = 'Connection successful!';
+apiStatus.className = 'api-status success';
+
+setTimeout(() => {
+apiStatus.className = 'api-status';
+apiStatus.textContent = '';
+}, 3000);
+}
+})
+.catch(error => {
+console.error('API test failed:', error);
+
+if (apiStatus) {
+// Provide more specific error message
+let errorMsg;
+
+if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+errorMsg = 'Network error: Check your internet connection.';
+} else if (error.message.includes('401')) {
+errorMsg = 'Authentication failed: Invalid API key.';
+} else if (error.message.includes('404')) {
+errorMsg = 'API endpoint not found. Verify the API endpoint is correct.';
+} else {
+errorMsg = `Connection failed: ${error.message}`;
+}
+
+apiStatus.textContent = errorMsg;
+apiStatus.className = 'api-status error';
+
+setTimeout(() => {
+apiStatus.className = 'api-status';
+apiStatus.textContent = '';
+}, 8000); // Longer display time for errors
+}
+})
+.finally(() => {
+testApiConnection.disabled = false;
+});
+});
+}
+
+// Reset particles button
+if (resetParticles) {
+safeAddEventListener(resetParticles, 'click', function() {
+console.log("Reset particles clicked");
+
+// Add visual feedback
+this.classList.add('button-active');
+setTimeout(() => this.classList.remove('button-active'), 300);
+
+// Call reset function if it exists
+if (typeof resetImageParticles === 'function') {
+try {
+resetImageParticles();
+} catch (err) {
+console.warn("Error resetting particles:", err);
+}
+}
+});
+}
+
+// Close panel button
+if (closeImagePanel) {
+safeAddEventListener(closeImagePanel, 'click', function() {
+console.log("Close image panel clicked");
+
+// Hide panel with animation
+if (imageUploadPanel) {
+imageUploadPanel.style.animation = 'fade-out 0.3s ease-in forwards';
+setTimeout(() => {
+imageUploadPanel.style.display = 'none';
+}, 300);
+}
+});
+}
+} catch (e) {
+console.warn("Error setting up image panel toggle:", e);
+}
+
+console.log("Image processing stubs created");
+
+// =================== CHAT INTEGRATION IMPLEMENTATION ===================
+console.log("Setting up chat integration stubs");
+
+// Safely get chat elements
+const chatPanel = safeGetElement('chatPanel');
+const chatClose = safeGetElement('chatClose');
+const chatInput = safeGetElement('chatInput');
+const chatSend = safeGetElement('chatSend');
+const chatMessages = safeGetElement('chatMessages');
+
+let isChatOpen = false;
+let messageHistory = [];
+let chatParticlesActive = false;
+
+// Open/close chat modal
+function toggleChat() {
+console.log("Chat modal toggle called");
+const chatOverlay = document.getElementById('chatOverlay');
+
+if (chatOverlay) {
+isChatOpen = !isChatOpen;
+
+if (isChatOpen) {
+// Open chat modal with animation
+chatOverlay.classList.add('visible');
+document.body.style.overflow = 'hidden'; // Prevent scrolling behind modal
+
+// Focus the input field after animation completes
+setTimeout(() => {
+const chatInput = document.getElementById('chatInput');
+if (chatInput) chatInput.focus();
+}, 500);
+
+// Trigger particle formation animation
+if (typeof startChatParticleFormation === 'function') {
+try {
+startChatParticleFormation();
+} catch (err) {
+console.warn("Error in particle formation:", err);
+}
+}
+} else {
+// Close chat modal with animation
+chatOverlay.classList.remove('visible');
+document.body.style.overflow = ''; // Restore scrolling
+
+// End particle animation
+if (typeof endChatParticleFormation === 'function') {
+try {
+endChatParticleFormation();
+} catch (err) {
+console.warn("Error ending particle formation:", err);
+}
+}
+}
+}
+}
+
+// Add message to chat
+function addMessage(text, sender) {
+console.log(`Adding ${sender} message`);
+if (!chatMessages) return;
+
+// Create message element
+const messageElement = document.createElement('div');
+messageElement.className = `message ${sender}`;
+
+// Create message content
+const contentElement = document.createElement('div');
+contentElement.className = 'message-content';
+
+// Create paragraph for text
+const paragraph = document.createElement('p');
+paragraph.textContent = text;
+contentElement.appendChild(paragraph);
+
+// Add timestamp
+const now = new Date();
+const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const timeElement = document.createElement('span');
+timeElement.className = 'message-time';
+timeElement.textContent = timeString;
+
+// Add all elements
+messageElement.appendChild(contentElement);
+messageElement.appendChild(timeElement);
+chatMessages.appendChild(messageElement);
+
+// Scroll to bottom
+chatMessages.scrollTop = chatMessages.scrollHeight;
+
+// Add to message history
+messageHistory.push({ role: sender === 'user' ? 'user' : 'assistant', content: text });
+
+// Trigger animation based on sender
+if (sender === 'user') {
+pulseUserMessage();
+} else {
+pulseAssistantMessage();
+}
+}
+
+// Send message to AI
+async function sendMessage() {
+if (!chatInput || !chatInput.value.trim()) return;
+
+const userMessage = chatInput.value.trim();
+chatInput.value = '';
+
+// Add user message to chat
+addMessage(userMessage, 'user');
+
+// Get API key if available
+const apiKey = localStorage.getItem('deepseekApiKey');
+const apiModel = localStorage.getItem('apiModel') || 'deepseek-r1';
+
+if (apiKey) {
+// Show typing indicator
+const typingIndicator = document.createElement('div');
+typingIndicator.className = 'message assistant typing';
+typingIndicator.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+chatMessages.appendChild(typingIndicator);
+chatMessages.scrollTop = chatMessages.scrollHeight;
+
+try {
+// Create messages array from history, limited to last 10 messages
+const recentMessages = messageHistory.slice(-10); // Limit to last 10 messages
+
+// Call DeepSeek API
+const response = await fetch('https://api.deepseeklabs.com/v1/chat/completions', {
+method: 'POST',
+headers: {
+'Content-Type': 'application/json',
+'Authorization': `Bearer ${apiKey}`
+},
+body: JSON.stringify({
+model: apiModel,
+messages: [
+{
+role: 'system',
+content: 'You are a helpful AI assistant that specializes in quantum physics and particle simulations. You provide concise responses and always try to relate your answers to quantum phenomena and particles.'
+},
+...recentMessages
+],
+max_tokens: 500
+})
+});
+
+// Remove typing indicator
+chatMessages.removeChild(typingIndicator);
+
+if (!response.ok) {
+throw new Error(`API error: ${response.status}`);
+}
+
+const data = await response.json();
+if (data.choices && data.choices[0] && data.choices[0].message) {
+const reply = data.choices[0].message.content;
+addMessage(reply, 'assistant');
+} else {
+throw new Error('Invalid response format');
+}
+} catch (error) {
+console.error('API error:', error);
+
+// Remove typing indicator if it exists
+if (typingIndicator.parentNode) {
+chatMessages.removeChild(typingIndicator);
+}
+
+// Provide more specific error message
+let errorMsg;
+
+if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+errorMsg = 'Sorry, I encountered a network error. Please check your internet connection and try again.';
+} else if (error.message.includes('401')) {
+errorMsg = 'Sorry, authentication failed. Please check your API key in the settings panel.';
+} else if (error.message.includes('404')) {
+errorMsg = 'Sorry, API endpoint not found. The DeepSeek API endpoint may have changed.';
+} else if (error.message.includes('429')) {
+errorMsg = 'Sorry, too many requests. The API rate limit has been exceeded. Please try again later.';
+} else {
+errorMsg = `Sorry, I encountered an error with the DeepSeek API: ${error.message}. Please check your settings and try again.`;
+}
+
+// Show error message
+addMessage(errorMsg, 'assistant');
+}
+} else {
+// Fallback to local simulation
+simulateAIResponse(userMessage);
+}
+}
+
+// Simulate AI response when no API key is provided
+function simulateAIResponse(query) {
+console.log("Simulating AI response");
+
+// Show typing indicator
+const typingIndicator = document.createElement('div');
+typingIndicator.className = 'message assistant typing';
+typingIndicator.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+chatMessages.appendChild(typingIndicator);
+chatMessages.scrollTop = chatMessages.scrollHeight;
+
+// Create a delay to simulate thinking
+setTimeout(() => {
+// Remove typing indicator
+chatMessages.removeChild(typingIndicator);
+
+// Simple response set
+const responses = [
+"The quantum simulation shows how particles interact at the quantum level. Try adjusting the shape modes to see different quantum phenomena.",
+"In quantum physics, particles can exist in multiple states simultaneously until observed. This visualization helps demonstrate that concept.",
+"These particle interactions demonstrate quantum entanglement, where particles become correlated and the state of one instantly influences the others.",
+"The wave-particle duality shown in this simulation is a fundamental concept in quantum mechanics.",
+"Try switching to the quantum color mode to see how energy levels are represented in this visualization.",
+"You can upload an image to see how particles organize themselves to form complex patterns, similar to how quantum fields interact."
+];
+
+// Select random response
+const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+
+// Add response to chat
+addMessage(randomResponse, 'assistant');
+}, 1500); // 1.5s delay to simulate thinking
+}
+
+function startChatParticleFormation() {
+console.log("Chat particle formation stub called");
+}
+
+function animateToChatFormation() {
+console.log("Chat animation stub called");
+}
+
+function endChatParticleFormation() {
+console.log("End chat animation stub called");
+}
+
+function pulseUserMessage() {
+console.log("User message pulse stub called");
+}
+
+function pulseAssistantMessage() {
+console.log("Assistant message pulse stub called");
+}
+
+// Chat modal event listeners
+const chatBtn = document.getElementById('chatBtn');
+if (chatBtn) {
+safeAddEventListener(chatBtn, 'click', function() {
+toggleChat();
+});
+}
+
+if (chatClose) {
+safeAddEventListener(chatClose, 'click', toggleChat);
+}
+
+// Close chat when clicking outside modal
+const chatOverlay = document.getElementById('chatOverlay');
+const chatModal = document.getElementById('chatModal');
+if (chatOverlay && chatModal) {
+safeAddEventListener(chatOverlay, 'click', function(e) {
+if (e.target === chatOverlay) {
+toggleChat(); // Close modal when clicking overlay
+}
+});
+}
+
+if (chatInput) {
+safeAddEventListener(chatInput, 'keypress', function(e) {
+if (e.key === 'Enter') {
+sendMessage();
+}
+});
+}
+
+if (chatSend) {
+safeAddEventListener(chatSend, 'click', sendMessage);
+}
+
+console.log("Chat integration stubs created");
+
+// =================== MOBILE OPTIMIZATION IMPLEMENTATION ===================
+console.log("Setting up enhanced mobile optimization");
+
+// Improved mobile detection with multiple factors
+function isMobileDevice() {
+const width = window.innerWidth;
+const height = window.innerHeight;
+const ratio = width / height;
+const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+// Consider both screen size and touch capability
+return (width <= 768) ||
+(hasTouchScreen && width <= 1024) ||
+(ratio < 0.8 || ratio > 2.2); // Extreme aspect ratios suggest mobile
+}
+
+// Get mobile elements with proper error handling
+const mobileToggle = safeGetElement('mobileToggle');
+const mobileShapePanel = safeGetElement('shape-panel');
+const mobileColorPanel = safeGetElement('color-panel');
+const mobileSettingsPanel = safeGetElement('settings-panel');
+const mobileControls = document.querySelector('.mobile-controls');
+const mobilePanels = document.querySelectorAll('.mobile-panel');
+const mobileControlButtons = document.querySelectorAll('.mobile-control-button[data-panel]');
+const mobileImageBtn = safeGetElement('mobileImageBtn');
+const mobileMono = safeGetElement('mobileMono');
+const mobileAudio = safeGetElement('mobileAudio');
+
+let mobileMode = false;
+
+// Set up mobile toggle
+if (mobileToggle) {
+console.log("Mobile toggle found, setting up enhanced handler");
+
+safeAddEventListener(mobileToggle, 'click', function() {
+console.log("Mobile toggle clicked");
+mobileMode = !mobileMode;
+document.body.classList.toggle('mobile-mode', mobileMode);
+this.classList.toggle('active', mobileMode);
+
+// Hide all panels when toggling mobile mode
+if (mobilePanels) {
+mobilePanels.forEach(panel => {
+panel.classList.remove('active');
+});
+}
+
+// Remove active status from control buttons
+if (mobileControlButtons) {
+mobileControlButtons.forEach(btn => {
+btn.classList.remove('active');
+});
+}
+
+// Save preference to localStorage
+try {
+localStorage.setItem('quantum-simulator-mobile-mode', mobileMode ? 'true' : 'false');
+console.log(`Mobile mode preference saved: ${mobileMode}`);
+} catch (e) {
+console.warn("Could not save mobile mode preference:", e);
+}
+});
+}
+
+// Handle mobile panel toggles with improved interaction
+if (mobileControlButtons) {
+mobileControlButtons.forEach(button => {
+safeAddEventListener(button, 'click', function() {
+if (!document.body.classList.contains('mobile-mode')) return;
+
+// Find panel and check if it's currently active
+const panelId = this.getAttribute('data-panel') + '-panel';
+const panel = document.getElementById(panelId);
+const isActive = this.classList.contains('active');
+
+// Always close all panels and deactivate buttons first
+mobilePanels.forEach(p => {
+p.classList.remove('active');
+});
+
+mobileControlButtons.forEach(btn => {
+btn.classList.remove('active');
+});
+
+// If panel wasn't active, open it
+if (!isActive && panel) {
+panel.classList.add('active');
+this.classList.add('active');
+
+// Add subtle visual feedback
+const ripple = document.createElement('span');
+ripple.classList.add('button-ripple');
+this.appendChild(ripple);
+
+// Trigger a subtle animation on the panel
+panel.style.animation = 'none';
+setTimeout(() => {
+panel.style.animation = 'panel-appear 0.4s cubic-bezier(0.19, 1, 0.22, 1)';
+}, 10);
+
+setTimeout(() => {
+if (ripple && ripple.parentNode === this) {
+this.removeChild(ripple);
+}
+}, 800);
+}
+});
+});
+}
+
+// Link mobile image button to main image upload
+if (mobileImageBtn) {
+safeAddEventListener(mobileImageBtn, 'click', function() {
+const imageBtn = document.getElementById('imageBtn');
+if (imageBtn) {
+imageBtn.click();
+} else {
+console.warn("Image button not found");
+}
+});
+}
+
+// Link mobile toggles to main controls
+if (mobileMono) {
+safeAddEventListener(mobileMono, 'change', function() {
+const mainMono = document.getElementById('monoToggle');
+if (mainMono) {
+mainMono.checked = this.checked;
+
+// Trigger the change event
+const event = new Event('change');
+mainMono.dispatchEvent(event);
+}
+});
+}
+
+if (mobileAudio) {
+safeAddEventListener(mobileAudio, 'change', function() {
+const mainAudio = document.getElementById('audioToggle');
+if (mainAudio) {
+mainAudio.checked = this.checked;
+
+// Trigger the change event
+const event = new Event('change');
+mainAudio.dispatchEvent(event);
+}
+});
+}
+
+// Auto-detect and enable mobile mode if appropriate, with stored preference support
+function initializeMobileMode() {
+// Check localStorage for saved preference first
+let storedPref = null;
+try {
+storedPref = localStorage.getItem('quantum-simulator-mobile-mode');
+} catch (e) {
+console.warn("Could not access localStorage:", e);
+}
+
+// Use stored preference if available, otherwise detect
+if (storedPref === 'true' || (storedPref === null && isMobileDevice())) {
+console.log("Mobile mode enabled: " + (storedPref ? "from storage" : "auto-detected"));
+mobileMode = true;
+document.body.classList.add('mobile-mode');
+if (mobileToggle) {
+mobileToggle.classList.add('active');
+}
+} else {
+console.log("Mobile mode disabled: " + (storedPref ? "from storage" : "auto-detected"));
+mobileMode = false;
+document.body.classList.remove('mobile-mode');
+}
+}
+
+// Initialize mobile mode right away
+initializeMobileMode();
+
+// Re-check on orientation change
+window.addEventListener('orientationchange', function() {
+// Only auto-switch if there's no stored preference
+try {
+const storedPref = localStorage.getItem('quantum-simulator-mobile-mode');
+if (storedPref === null) {
+setTimeout(() => {
+const shouldBeMobile = isMobileDevice();
+if (shouldBeMobile !== mobileMode) {
+console.log(`Orientation changed, switching to ${shouldBeMobile ? 'mobile' : 'desktop'} mode`);
+mobileMode = shouldBeMobile;
+document.body.classList.toggle('mobile-mode', mobileMode);
+if (mobileToggle) {
+mobileToggle.classList.toggle('active', mobileMode);
+}
+}
+}, 300); // Short delay to ensure dimensions are updated
+}
+} catch (e) {
+console.warn("Error handling orientation change:", e);
+}
+});
+
+console.log("Mobile optimization setup complete");
+
+console.log("Setup complete");
+} catch (error) {
+console.error("Critical initialization error:", error.message, error.stack);
+hideLoading();
+alert("Failed to initialize the quantum simulator: " + error.message);
+}
+});
+</script>
+</body>
+</html>
